@@ -12,7 +12,7 @@ class TeacherBase(BaseModel):
     @field_validator("teacher_no")
     @classmethod
     def validate_teacher_no(cls, v: str) -> str:
-        if not v[0].isalpha():
+        if not v or not v[0].isalpha():
             raise ValueError("工号必须以字母开头")
         if not v.isalnum():
             raise ValueError("工号只能包含字母和数字")
@@ -47,7 +47,7 @@ class TeacherUpdate(BaseModel):
     @classmethod
     def validate_teacher_no(cls, v: Optional[str]) -> Optional[str]:
         if v is not None:
-            if not v[0].isalpha():
+            if not v or not v[0].isalpha():
                 raise ValueError("工号必须以字母开头")
             if not v.isalnum():
                 raise ValueError("工号只能包含字母和数字")

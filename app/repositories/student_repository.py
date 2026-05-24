@@ -67,3 +67,14 @@ class StudentRepository:
         total = query.count()
         items = query.offset(skip).limit(limit).all()
         return items, total
+
+    def clear_class_for_students(self, class_id: int) -> int:
+        """清空属于指定班级的学生的班级信息"""
+        result = self.db.query(Student).filter(
+            and_(
+                Student.class_id == class_id,
+                Student.is_deleted == False
+            )
+        ).update({"class_id": None})
+        self.db.commit()
+        return result

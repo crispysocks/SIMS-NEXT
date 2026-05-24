@@ -10,7 +10,7 @@ from app.schemas.teacher import (
     TeacherDetail,
     PaginatedTeachers,
 )
-from app.schemas.class import (
+from app.schemas.class_schema import (
     ClassCreate,
     ClassUpdate,
     ClassDetail,

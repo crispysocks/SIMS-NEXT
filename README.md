@@ -80,13 +80,21 @@ uv sync
 复制 `.env.example` 为 `.env`，修改数据库连接配置：
 
 ```env
-DATABASE_URL=mysql+pymysql://user:password@localhost:3306/sims
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=your_user
+DB_PASSWORD=your_password
+DB_NAME=sims
 ```
 
 ### 初始化数据库
 
+直接登录 MySQL 后执行脚本：
+
 ```bash
-mysql -u root -p sims < scripts/create_tables.sql
+mysql -u root -p
+# 登录后执行以下命令
+source scripts/create_tables.sql
 ```
 
 ### 启动服务

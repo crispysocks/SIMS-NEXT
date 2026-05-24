@@ -16,6 +16,12 @@ from app.schemas.class_schema import (
     ClassDetail,
     PaginatedClasses,
 )
+from app.schemas.score_schema import (
+    ScoreCreate,
+    ScoreUpdate,
+    ScoreDetail,
+    PaginatedScores,
+)
 
 __all__ = [
     "StudentCreate",
@@ -30,4 +36,8 @@ __all__ = [
     "ClassUpdate",
     "ClassDetail",
     "PaginatedClasses",
+    "ScoreCreate",
+    "ScoreUpdate",
+    "ScoreDetail",
+    "PaginatedScores",
 ]

@@ -32,3 +32,16 @@ CREATE TABLE IF NOT EXISTS teachers (
     INDEX idx_teacher_no_deleted (teacher_no, is_deleted),
     INDEX idx_is_deleted (is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Classes Table
+CREATE TABLE IF NOT EXISTS classes (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    class_no VARCHAR(50) NOT NULL UNIQUE,
+    class_name VARCHAR(100) NOT NULL,
+    head_teacher_no VARCHAR(20) NOT NULL UNIQUE,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_class_no_deleted (class_no, is_deleted),
+    INDEX idx_head_teacher_no_deleted (head_teacher_no, is_deleted)
+);

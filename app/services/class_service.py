@@ -77,5 +77,5 @@ class ClassService:
         if not class_obj:
             raise ValueError(f"班级 {class_id} 不存在")
 
-        self.student_repo.clear_class_for_students(class_obj.class_no)
+        self.student_repo.clear_class_for_students(class_obj.id)
         self.repo.soft_delete(class_obj)

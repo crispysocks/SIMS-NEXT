@@ -1,7 +1,7 @@
 [project]
 name = "sims-next"
 version = "0.1.0"
-description = "Add your description here"
+description = "Student Information Management System - FastAPI based student info management system with support for students, teachers, classes, and scores"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

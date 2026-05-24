@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from typing import Optional
 
-from app.models.class import Class
+from app.models.class_model import Class
 
 
 def _escape_like(s: str) -> str:

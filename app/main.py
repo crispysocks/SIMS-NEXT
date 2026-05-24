@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app.api.v1.student import router as student_router
 from app.api.v1.teacher import router as teacher_router
-from app.api.v1.class import router as class_router
+from app.api.v1.class_router import router as class_router
 
 app = FastAPI(title="SIMS-NEXT", description="Student Information Management System")
 

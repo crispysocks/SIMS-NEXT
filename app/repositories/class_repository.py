@@ -5,6 +5,11 @@ from typing import Optional
 from app.models.class import Class
 
 
+def _escape_like(s: str) -> str:
+    """Escape special characters for SQL LIKE patterns"""
+    return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 class ClassRepository:
     def __init__(self, db: Session):
         self.db = db
@@ -66,8 +71,8 @@ class ClassRepository:
         query = self.db.query(Class).filter(Class.is_deleted == False)
 
         if class_no:
-            query = query.filter(Class.class_no.like(f"%{class_no}%"))
+            query = query.filter(Class.class_no.like(f"%{_escape_like(class_no)}%", escape="\\"))
         if class_name:
-            query = query.filter(Class.class_name.like(f"%{class_name}%"))
+            query = query.filter(Class.class_name.like(f"%{_escape_like(class_name)}%", escape="\\"))
 
         return query.all()

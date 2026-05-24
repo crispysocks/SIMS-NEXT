@@ -4,7 +4,7 @@ from typing import Optional
 
 from app.core.database import get_db
 from app.services.class_service import ClassService
-from app.schemas.class import ClassCreate, ClassUpdate, ClassDetail, PaginatedClasses
+from app.schemas.class_schema import ClassCreate, ClassUpdate, ClassDetail, PaginatedClasses
 
 router = APIRouter(prefix="/classes", tags=["classes"])
 

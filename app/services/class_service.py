@@ -4,8 +4,8 @@ from typing import Optional
 from app.repositories.class_repository import ClassRepository
 from app.repositories.teacher_repository import TeacherRepository
 from app.repositories.student_repository import StudentRepository
-from app.models.class import Class
-from app.schemas.class import ClassCreate, ClassUpdate, ClassDetail, PaginatedClasses
+from app.models.class_model import Class
+from app.schemas.class_schema import ClassCreate, ClassUpdate, ClassDetail, PaginatedClasses
 
 
 class ClassService:

@@ -44,4 +44,4 @@ CREATE TABLE IF NOT EXISTS classes (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_class_no_deleted (class_no, is_deleted),
     INDEX idx_head_teacher_no_deleted (head_teacher_no, is_deleted)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

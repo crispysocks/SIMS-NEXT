@@ -89,12 +89,8 @@ DB_NAME=sims
 
 ### 初始化数据库
 
-直接登录 MySQL 后执行脚本：
-
-```bash
-mysql -u root -p
-# 登录后执行以下命令
-source scripts/create_tables.sql
+```powershell
+mysql -u root -p -e "source scripts/create_tables.sql"
 ```
 
 ### 启动服务

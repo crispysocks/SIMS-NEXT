@@ -1,6 +1,9 @@
 -- Student Information Management System Database Setup
 -- This script creates the students table
 
+CREATE DATABASE IF NOT EXISTS sims;
+USE sims;
+
 CREATE TABLE IF NOT EXISTS students (
     id INT AUTO_INCREMENT PRIMARY KEY,
     student_no VARCHAR(20) NOT NULL UNIQUE,

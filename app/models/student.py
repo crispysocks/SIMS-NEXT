@@ -10,7 +10,10 @@ class Student(Base):
     name = Column(String(50), nullable=False)
     gender = Column(String(10), nullable=False)
     age = Column(Integer, nullable=False)
+<<<<<<< HEAD
     region = Column(String(50), nullable=False, default="市区", index=True)  # 地区
+=======
+>>>>>>> origin/main
     native_place = Column(String(100), nullable=True)
     class_id = Column(Integer, nullable=True, index=True)
     enrollment_date = Column(Date, nullable=False)
@@ -20,5 +23,8 @@ class Student(Base):
 
     __table_args__ = (
         Index("idx_class_id_deleted", "class_id", "is_deleted"),
+<<<<<<< HEAD
         Index("idx_region_deleted", "region", "is_deleted"),
+=======
+>>>>>>> origin/main
     )

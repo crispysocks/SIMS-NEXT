@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>升学预测AI分析</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header .subtitle {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        /* Main Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Card */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        /* Student Info */
+        .student-info {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            text-align: center;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .info-value.score { color: #f59e0b; }
+        .info-value.rank { color: #10b981; }
+        .info-value.trend { color: #ef4444; }
+
+        .trend-up::before { content: '↑'; margin-right: 4px; }
+        .trend-down::before { content: '↓'; margin-right: 4px; }
+
+        /* School Cards */
+        .school-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .school-cards { grid-template-columns: 1fr; }
+        }
+
+        .school-card {
+            padding: 16px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .school-card.stretch {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border: 1px solid #fca5a5;
+        }
+
+        .school-card.stable {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 1px solid #fcd34d;
+        }
+
+        .school-card.secure {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border: 1px solid #6ee7b7;
+        }
+
+        .school-type {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .stretch .school-type { color: #dc2626; }
+        .stable .school-type { color: #d97706; }
+        .secure .school-type { color: #059669; }
+
+        .school-name {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .school-prob {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .school-reason {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        /* Chat Area */
+        .chat-area {
+            height: 400px;
+            overflow-y: auto;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .chat-empty {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+        }
+
+        .chat-empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .chat-message {
+            margin-bottom: 16px;
+            max-width: 85%;
+        }
+
+        .chat-message.user { margin-left: auto; text-align: right; }
+        .chat-message.assistant { margin-right: auto; text-align: left; }
+
+        .chat-bubble {
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .chat-message.user .chat-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-message.assistant .chat-bubble {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-thinking {
+            display: inline-block;
+            animation: pulse 1.5s infinite;
+            color: #999;
+            font-size: 12px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Input Area */
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-area input:focus { border-color: #667eea; }
+
+        .input-area button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .input-area button:hover { opacity: 0.9; }
+        .input-area button:active { transform: scale(0.98); }
+        .input-area button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Risk Warning */
+        .risk-warning {
+            background: #fffbeb;
+            border: 1px solid #fbbf24;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+        }
+
+        .risk-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #d97706;
+            margin-bottom: 8px;
+        }
+
+        .risk-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+        .risk-tag {
+            padding: 4px 10px;
+            background: #fef3c7;
+            color: #92400e;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        /* Portrait */
+        .portrait-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .portrait-item {
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        .portrait-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .portrait-value { font-size: 14px; font-weight: 500; }
+        .ability-strong { color: #059669; }
+        .ability-medium { color: #d97706; }
+        .ability-weak { color: #dc2626; }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .action-btn:hover { opacity: 0.9; }
+        .action-btn:active { transform: scale(0.98); }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+
+        .action-btn.secondary {
+            background: white;
+            border: 1px solid #e5e7eb;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #eee;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error */
+        .error-banner {
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Error Banner (hidden by default) -->
+        <div class="error-banner" id="errorBanner" style="display: none;">
+            <span id="errorMessage"></span>
+        </div>
+
+        <!-- Header -->
+        <div class="header">
+            <h1>升学预测AI分析</h1>
+            <div class="subtitle">基于人工智能的个性化升学指导</div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-grid">
+            <!-- Left Column -->
+            <div class="left-column">
+                <!-- Student Info Card -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-title">学生成绩概览</div>
+                    <div class="student-info">
+                        <div class="info-item">
+                            <div class="info-label">总分数</div>
+                            <div class="info-value score" id="totalScore">--</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">年级排名</div>
+                            <div class="info-value rank" id="ranking">--</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">排名趋势</div>
+                            <div class="info-value trend" id="trend">--</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">学习类型</div>
+                            <div class="info-value" id="learningType" style="font-size: 16px;">--</div>
+                        </div>
+                    </div>
+
+                    <!-- School Cards -->
+                    <div class="school-cards">
+                        <div class="school-card stretch">
+                            <div class="school-type">🎯 冲刺</div>
+                            <div class="school-name" id="stretchSchool">--</div>
+                            <div class="school-prob" id="stretchProb">--%</div>
+                            <div class="school-reason">分数差30分内</div>
+                        </div>
+                        <div class="school-card stable">
+                            <div class="school-type">📊 稳定</div>
+                            <div class="school-name" id="stableSchool">--</div>
+                            <div class="school-prob" id="stableProb">--%</div>
+                            <div class="school-reason">概率40%-75%</div>
+                        </div>
+                        <div class="school-card secure">
+                            <div class="school-type">🛡️ 保底</div>
+                            <div class="school-name" id="secureSchool">--</div>
+                            <div class="school-prob" id="secureProb">--%</div>
+                            <div class="school-reason">概率75%以上</div>
+                        </div>
+                    </div>
+
+                    <!-- Risk Warning -->
+                    <div class="risk-warning" id="riskWarning" style="display: none;">
+                        <div class="risk-title">⚠️ 风险提示</div>
+                        <div class="risk-tags" id="riskTags"></div>
+                    </div>
+                </div>
+
+                <!-- AI Chat Card -->
+                <div class="card">
+                    <div class="card-title">💬 AI智能分析</div>
+                    <div class="chat-area" id="chatArea">
+                        <div class="chat-empty">
+                            <div class="chat-empty-icon">🤖</div>
+                            <div>点击下方按钮，让AI分析您的升学情况</div>
+                        </div>
+                    </div>
+                    <div class="input-area">
+                        <input type="text" id="chatInput" placeholder="输入您的追问..." onkeypress="handleKeyPress(event)">
+                        <button onclick="sendMessage()" id="sendBtn">发送</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="right-column">
+                <!-- Portrait Card -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <div class="card-title">📊 学习画像</div>
+                    <div class="portrait-grid">
+                        <div class="portrait-item">
+                            <div class="portrait-label">理科能力</div>
+                            <div class="portrait-value" id="scienceAbility">--</div>
+                        </div>
+                        <div class="portrait-item">
+                            <div class="portrait-label">文科能力</div>
+                            <div class="portrait-value" id="englishAbility">--</div>
+                        </div>
+                        <div class="portrait-item">
+                            <div class="portrait-label">当前档次</div>
+                            <div class="portrait-value" id="currentTier">--</div>
+                        </div>
+                        <div class="portrait-item">
+                            <div class="portrait-label">目标档次</div>
+                            <div class="portrait-value" id="targetTier">--</div>
+                        </div>
+                        <div class="portrait-item" style="grid-column: span 2;">
+                            <div class="portrait-label">提升潜力</div>
+                            <div class="portrait-value" id="improvementPotential">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card">
+                    <div class="card-title">⚡ 快捷操作</div>
+                    <div class="action-buttons">
+                        <button class="action-btn primary" onclick="startAnalysis()">
+                            🚀 开始AI分析
+                        </button>
+                        <button class="action-btn secondary" onclick="simulateScore()">
+                            📈 模拟加分预测
+                        </button>
+                        <button class="action-btn secondary" onclick="location.reload()">
+                            🔄 重新加载
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 配置
+        const API_BASE = '/api/v1';  // 同源，使用相对路径
+        const STUDENT_ID = 1;         // 学生ID，可改为动态获取
+        let isStreaming = false;
+
+        // 显示错误
+        function showError(message) {
+            const banner = document.getElementById('errorBanner');
+            document.getElementById('errorMessage').textContent = message;
+            banner.style.display = 'block';
+        }
+
+        // 隐藏错误
+        function hideError() {
+            document.getElementById('errorBanner').style.display = 'none';
+        }
+
+        // 初始化页面
+        async function init() {
+            hideError();
+            await loadStudentData();
+        }
+
+        // 加载学生数据
+        async function loadStudentData() {
+            try {
+                // 获取预测数据
+                const predResponse = await fetch(`${API_BASE}/predict/${STUDENT_ID}?current_score=400`);
+                if (!predResponse.ok) {
+                    if (predResponse.status === 404) {
+                        showError('未找到学生数据，请检查学生ID是否正确');
+                    } else {
+                        showError('获取学生数据失败: HTTP ' + predResponse.status);
+                    }
+                    return;
+                }
+                const predData = await predResponse.json();
+
+                // 更新学生信息
+                document.getElementById('totalScore').textContent = Math.round(predData.current_score || 0);
+                document.getElementById('ranking').textContent = '#' + (predData.current_ranking || '--');
+
+                const trend = predData.ranking_trend || '波动';
+                const trendEl = document.getElementById('trend');
+                trendEl.textContent = trend;
+                trendEl.className = 'info-value trend ' + (trend === '上升' ? 'trend-up' : trend === '下降' ? 'trend-down' : '');
+
+                // 更新学校推荐
+                const predictions = predData.predictions || {};
+                const stretchSchools = predictions['冲刺'] || [];
+                const stableSchools = predictions['稳定'] || [];
+                const secureSchools = predictions['保底'] || [];
+
+                if (stretchSchools.length > 0) {
+                    document.getElementById('stretchSchool').textContent = stretchSchools[0].school_name;
+                    document.getElementById('stretchProb').textContent = stretchSchools[0].admission_probability + '%';
+                }
+
+                if (stableSchools.length > 0) {
+                    document.getElementById('stableSchool').textContent = stableSchools[0].school_name;
+                    document.getElementById('stableProb').textContent = stableSchools[0].admission_probability + '%';
+                }
+
+                if (secureSchools.length > 0) {
+                    document.getElementById('secureSchool').textContent = secureSchools[0].school_name;
+                    document.getElementById('secureProb').textContent = secureSchools[0].admission_probability + '%';
+                }
+
+                // 获取画像数据
+                const portraitResponse = await fetch(`${API_BASE}/predict/${STUDENT_ID}/portrait`);
+                if (portraitResponse.ok) {
+                    const portraitData = await portraitResponse.json();
+
+                    document.getElementById('learningType').textContent = portraitData.learning_type || '--';
+                    document.getElementById('scienceAbility').textContent = portraitData.science_ability || '--';
+                    document.getElementById('englishAbility').textContent = portraitData.english_ability || '--';
+                    document.getElementById('improvementPotential').textContent = portraitData.improvement_potential || '--';
+                    document.getElementById('currentTier').textContent = portraitData.current_tier || '--';
+                    document.getElementById('targetTier').textContent = portraitData.target_tier || '--';
+
+                    setAbilityColor('scienceAbility', portraitData.science_ability);
+                    setAbilityColor('englishAbility', portraitData.english_ability);
+                }
+
+                // 获取风险数据
+                const riskResponse = await fetch(`${API_BASE}/predict/${STUDENT_ID}/risk`);
+                if (riskResponse.ok) {
+                    const riskData = await riskResponse.json();
+
+                    if (riskData.risk_tags && riskData.risk_tags.length > 0) {
+                        document.getElementById('riskWarning').style.display = 'block';
+                        const riskTagsEl = document.getElementById('riskTags');
+                        riskTagsEl.innerHTML = riskData.risk_tags.map(tag =>
+                            `<span class="risk-tag">${tag}</span>`
+                        ).join('');
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error loading student data:', error);
+                showError('加载数据失败: ' + error.message + ' - 请确保后端服务已启动');
+            }
+        }
+
+        function setAbilityColor(elementId, ability) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            el.className = 'portrait-value';
+            if (ability === '强') el.classList.add('ability-strong');
+            else if (ability === '中') el.classList.add('ability-medium');
+            else if (ability === '弱') el.classList.add('ability-weak');
+        }
+
+        // 开始AI分析
+        async function startAnalysis() {
+            if (isStreaming) return;
+            clearChat();
+            appendThinking();
+
+            try {
+                await streamChat(null);
+            } catch (error) {
+                removeThinking();
+                appendMessage('assistant', '抱歉，AI分析启动失败: ' + error.message);
+            }
+        }
+
+        // 发送消息
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+
+            if (!message || isStreaming) return;
+
+            appendMessage('user', message);
+            input.value = '';
+
+            try {
+                await streamChat(message);
+            } catch (error) {
+                removeThinking();
+                appendMessage('assistant', '抱歉，AI回复失败: ' + error.message);
+            }
+        }
+
+        // 流式聊天
+        async function streamChat(message) {
+            isStreaming = true;
+            document.getElementById('sendBtn').disabled = true;
+
+            const response = await fetch(`${API_BASE}/advice/${STUDENT_ID}/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message, stream: true })
+            });
+
+            if (!response.ok) {
+                throw new Error('请求失败: ' + response.status);
+            }
+
+            removeThinking();
+
+            const chatArea = document.getElementById('chatArea');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'chat-message assistant';
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'chat-bubble';
+            msgDiv.appendChild(bubbleDiv);
+            chatArea.appendChild(msgDiv);
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop();
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            if (data.content && data.content !== '[DONE]') {
+                                bubbleDiv.textContent += data.content;
+                                chatArea.scrollTop = chatArea.scrollHeight;
+                            }
+                        } catch (e) {
+                            // 忽略解析错误
+                        }
+                    }
+                }
+            }
+
+            isStreaming = false;
+            document.getElementById('sendBtn').disabled = false;
+        }
+
+        // 模拟加分
+        async function simulateScore() {
+            const input = document.getElementById('chatInput');
+            input.value = '如果数学多加10分，我的录取概率会提升多少？';
+            sendMessage();
+        }
+
+        // 工具函数
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') sendMessage();
+        }
+
+        function clearChat() {
+            document.getElementById('chatArea').innerHTML = '';
+        }
+
+        function appendMessage(role, content) {
+            const chatArea = document.getElementById('chatArea');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'chat-message ' + role;
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'chat-bubble';
+            bubbleDiv.textContent = content;
+            msgDiv.appendChild(bubbleDiv);
+            chatArea.appendChild(msgDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function appendThinking() {
+            const chatArea = document.getElementById('chatArea');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'chat-message assistant';
+            msgDiv.id = 'thinking';
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'chat-bubble chat-thinking';
+            bubbleDiv.textContent = 'AI分析中...';
+            msgDiv.appendChild(bubbleDiv);
+            chatArea.appendChild(msgDiv);
+        }
+
+        function removeThinking() {
+            const thinking = document.getElementById('thinking');
+            if (thinking) thinking.remove();
+        }
+
+        // 启动
+        init();
+    </script>
+</body>
+</html>

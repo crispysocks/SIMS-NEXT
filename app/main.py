@@ -1,9 +1,14 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
 from app.core.config import API_PREFIX
 from app.core.seed import seed_default_admin
+from conflg.logging_config import setup_logging
+
+setup_logging()
+
 from app.api.v1.student import router as student_router
 from app.api.v1.teacher import router as teacher_router
 from app.api.v1.class_router import router as class_router

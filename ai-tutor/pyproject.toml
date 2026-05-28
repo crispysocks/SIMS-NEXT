@@ -1,0 +1,18 @@
+[project]
+name = "ai-tutor"
+version = "0.1.0"
+description = "AI Math Tutor — adaptive math learning with Bayesian mastery tracking"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.20.0",
+    "pydantic>=2.0.0",
+    "sympy>=1.12",
+    "streamlit>=1.25.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+    "httpx>=0.24.0",
+]

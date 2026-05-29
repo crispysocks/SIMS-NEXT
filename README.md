@@ -217,6 +217,46 @@ npm run dev
 - 遵循分层架构: API → Service → Repository → Model
 - 前端使用 zustand 管理状态，fetch 封装 API 调用
 
+# 配置说明
+
+项目支持通过 `.env` 文件配置以下参数：
+
+### 数据库配置
+
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
+| `DB_HOST` | localhost | 数据库主机 |
+| `DB_PORT` | 3306 | 数据库端口 |
+| `DB_USER` | user | 数据库用户名 |
+| `DB_PASSWORD` | password | 数据库密码 |
+| `DB_NAME` | sims | 数据库名称 |
+
+### JWT 认证配置
+
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
+| `JWT_SECRET_KEY` | sims-next-secret-key-change-in-production | 令牌签名密钥 |
+| `JWT_EXPIRE_MINUTES` | 1440 | Token 有效期（分钟） |
+
+### 数据库连接池配置
+
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
+| `DB_POOL_SIZE` | 5 | 连接池大小 |
+| `DB_MAX_OVERFLOW` | 10 | 最大溢出连接数 |
+
+### API 路由配置
+
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
+| `API_PREFIX` | /api/v1 | API 路由前缀 |
+
+### 前端配置
+
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
+| `VITE_API_BASE_URL` | /api/v1 | 前端 API 请求基础路径 |
+
 ## 许可证
 
 MIT License

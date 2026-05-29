@@ -24,3 +24,7 @@ DB_MAX_OVERFLOW: int = int(os.getenv("DB_MAX_OVERFLOW", "10"))
 
 # API配置
 API_PREFIX: str = os.getenv("API_PREFIX", "/api/v1")
+
+# 默认管理员账号
+DEFAULT_ADMIN_USERNAME: str = os.getenv("DEFAULT_ADMIN_USERNAME", "admin")
+DEFAULT_ADMIN_PASSWORD: str = os.getenv("DEFAULT_ADMIN_PASSWORD", "admin123")

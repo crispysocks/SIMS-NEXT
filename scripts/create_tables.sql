@@ -1,12 +1,9 @@
 -- Student Information Management System Database Setup
 -- This script creates the students table
 
-<<<<<<< HEAD
-=======
 CREATE DATABASE IF NOT EXISTS sims;
 USE sims;
 
->>>>>>> origin/main
 CREATE TABLE IF NOT EXISTS students (
     id INT AUTO_INCREMENT PRIMARY KEY,
     student_no VARCHAR(20) NOT NULL UNIQUE,
@@ -64,20 +61,4 @@ CREATE TABLE IF NOT EXISTS scores (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     INDEX idx_student_no (student_no),
     INDEX idx_exam_name (exam_name)
-<<<<<<< HEAD
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Chat Sessions Table
-CREATE TABLE IF NOT EXISTS chat_sessions (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    student_id INT NOT NULL,
-    message_count INT DEFAULT 0,
-    messages TEXT,
-    last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_student_id (student_id),
-    INDEX idx_last_active (last_active_at)
-=======
->>>>>>> origin/main
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -7,6 +7,17 @@ from app.agent.models.question import Question
 from app.agent.models.question_kp import QuestionKnowledgePoint
 from app.agent.models.knowledge_point import KnowledgePoint
 from app.agent.models.exam import Exam
+from decimal import Decimal
+
+
+def _cast(obj):
+    """将 Decimal 转为 float，其他类型保持不变。"""
+    return float(obj) if isinstance(obj, Decimal) else obj
+
+
+def _cast_row(row) -> dict:
+    """将 SQLAlchemy Row 转为 dict，所有 Decimal 转为 float。"""
+    return {k: _cast(v) for k, v in row._asdict().items()}
 
 
 class ScoreRecordRepo:
@@ -36,7 +47,7 @@ class ScoreRecordRepo:
             .filter(ScoreRecord.exam_id == exam_id)
             .all()
         )
-        return [r._asdict() for r in rows]
+        return [_cast_row(r) for r in rows]
 
     def get_kp_mastery_by_exams(
         self, class_id: int, exam_ids: list[int], kp_ids: list[int] | None = None
@@ -72,7 +83,7 @@ class ScoreRecordRepo:
             KnowledgePoint.core_weight,
         ).all()
 
-        return [r._asdict() for r in rows]
+        return [_cast_row(r) for r in rows]
 
     def get_student_total_scores(
         self, class_id: int, exam_id: int
@@ -89,12 +100,14 @@ class ScoreRecordRepo:
             .all()
         )
 
-        sorted_rows = sorted(rows, key=lambda r: r.total_score, reverse=True)
+        sorted_rows = sorted(rows, key=lambda r: float(r.total_score), reverse=True)
         results = []
         for rank, r in enumerate(sorted_rows, 1):
             d = r._asdict()
             d["rank"] = rank
-            d["score_rate"] = d["total_score"] / d["total_max"] if d["total_max"] else 0
+            d["total_score"] = float(d["total_score"])
+            d["total_max"] = float(d["total_max"])
+            d["score_rate"] = d["total_score"] / d["total_max"] if d["total_max"] else 0.0
             results.append(d)
         return results
 
@@ -135,7 +148,7 @@ class ScoreRecordRepo:
             .all()
         )
 
-        return [r._asdict() for r in rows]
+        return [_cast_row(r) for r in rows]
 
     def get_grade_avg_by_kp(
         self, kp_id: int, exam_ids: list[int]
@@ -152,8 +165,8 @@ class ScoreRecordRepo:
             .filter(ScoreRecord.exam_id.in_(exam_ids))
             .first()
         )
-        if row and row.total_max:
-            return row.total_score / row.total_max
+        if row and float(row.total_max):
+            return float(row.total_score) / float(row.total_max)
         return 0.0
 
     def get_top_students_summary(
@@ -188,7 +201,7 @@ class ScoreRecordRepo:
             .all()
         )
 
-        common_weak = [r._asdict() for r in kp_rows]
+        common_weak = [_cast_row(r) for r in kp_rows]
 
         return {
             "avg_score": avg_score,

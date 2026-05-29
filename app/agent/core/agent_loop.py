@@ -127,15 +127,12 @@ async def run_agent_loop(
     # LLM 审视（可选，最多额外 2 步）
     deep_count = 0
     while deep_count < MAX_DEEP_STEPS:
-        tool_results_for_llm = _format_tool_results(all_tool_results)
-        messages.append({"role": "assistant", "content": None, "tool_calls": initial_tool_calls})
-        for tr in tool_results_for_llm:
-            messages.append(tr)
-
-        check_prompt = messages + [{
-            "role": "system",
-            "content": "如果数据已经足够生成教学建议，回复 DONE。如果还需要更多数据，回复 tool_call。"
-        }]
+        tool_data_text = "\n".join(
+            f"[{r['tool_name']}]: {r['summary']}" for r in all_tool_results
+        )
+        check_prompt = messages + [
+            {"role": "user", "content": f"已获取以下数据:\n{tool_data_text}\n\n如果数据足够生成教学建议，回复 DONE。如需更多数据，调用 tool。"}
+        ]
 
         try:
             check_response = await chat_completion(check_prompt, tools=TOOL_DEFINITIONS)
@@ -174,10 +171,13 @@ async def run_agent_loop(
                     "params": args, "duration_ms": 0,
                 })
 
-    # LLM 流式生成
-    final_messages = messages + [{"role": "system", "content": "现在基于以上所有数据，生成教学分析报告。"}]
-    for tr in _format_tool_results(all_tool_results):
-        final_messages.append(tr)
+    # LLM 流式生成——将 tool 结果作为 user 消息内容注入，避免 DeepSeek tool 消息约束
+    tool_data_text = "基于以下分析数据生成教学报告:\n" + "\n".join(
+        f"[{r['tool_name']}]: {r['summary']}" for r in all_tool_results
+    )
+    final_messages = messages + [
+        {"role": "user", "content": f"{user_message}\n\n已获取分析数据:\n{tool_data_text}"}
+    ]
 
     assistant_msg = sm.add_message(
         session_id, "assistant",
@@ -205,13 +205,15 @@ async def run_agent_loop(
                 yield DataCardEvent(card_type=card_type, title=title, data_id=tr["data_id"]).to_sse()
 
     try:
-        stream = await chat_completion(final_messages, stream=True)
-        full_text = ""
-        async for chunk in stream:
-            if chunk.choices and chunk.choices[0].delta.content:
-                token = chunk.choices[0].delta.content
-                full_text += token
-                yield TextDeltaEvent(text=token).to_sse()
+        # 先用非流式获取，再逐字 yield
+        response = await chat_completion(final_messages)
+        full_text = response["choices"][0]["message"]["content"]
+        # 按句子/短语切分输出，模拟流式体验
+        import re
+        chunks = re.split(r'(\n\n|。|；|，|、|\n)', full_text)
+        for chunk in chunks:
+            if chunk:
+                yield TextDeltaEvent(text=chunk).to_sse()
 
         validated = await _validate_with_retry(final_messages, full_text)
         if validated:

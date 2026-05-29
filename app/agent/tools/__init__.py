@@ -159,5 +159,42 @@ TOOL_DEFINITIONS = [
     },
 ]
 
-# 占位——B2 阶段由 data_tools 和 analysis_tools 填充
-ALL_TOOLS: dict = {}
+# 注册所有 Tool 函数
+from app.agent.tools.data_tools import DATA_TOOLS
+from app.agent.tools.analysis_tools import ANALYSIS_TOOLS
+
+ALL_TOOLS = {**DATA_TOOLS, **ANALYSIS_TOOLS}
+
+
+async def execute_tool(
+    tool_name: str, args: dict, db, class_id: int
+) -> dict:
+    """执行单个 Tool 并返回 {summary, data_id, full_data, ok}。
+
+    class_id 由 session 绑定注入，覆盖 LLM 传入的参数，防止越权。
+    """
+    if tool_name not in ALL_TOOLS:
+        return {"summary": f"未知工具: {tool_name}", "data_id": None, "ok": False}
+
+    args["class_id"] = class_id
+    return await ALL_TOOLS[tool_name](args, db)
+
+
+async def execute_tools_parallel(
+    tool_calls: list[dict], db, class_id: int
+) -> list[dict]:
+    """并行执行多个 Tool 调用。"""
+    import asyncio
+
+    async def run_one(tc: dict):
+        fn = tc["function"]
+        args = fn.get("arguments", {})
+        if isinstance(args, str):
+            import json
+            args = json.loads(args)
+        result = await execute_tool(fn["name"], args, db, class_id)
+        result["tool_name"] = fn["name"]
+        result["tool_call_id"] = tc.get("id")
+        return result
+
+    return await asyncio.gather(*[run_one(tc) for tc in tool_calls])

@@ -31,7 +31,7 @@ class TutorResponse:
 
 
 PROMPT_TEMPLATE = """\
-You are a math tutor providing feedback to a student. Respond in Chinese.
+You are a {subject_name} tutor providing feedback to a student. Respond in Chinese.
 
 Topic: {topic}
 Difficulty: {difficulty}
@@ -49,7 +49,7 @@ Only return the JSON, no other text.
 Example: {{"explanation": "你的答案正确，因式分解步骤是对的", "hint": "可以试试更快的十字相乘法", "encouragement": "继续加油"}}"""
 
 HINT_PROMPT_TEMPLATE = """\
-You are a math tutor giving a hint to a student who is stuck on a problem. Respond in Chinese.
+You are a {subject_name} tutor giving a hint to a student who is stuck on a problem. Respond in Chinese.
 
 Topic: {topic}
 Difficulty: {difficulty}
@@ -90,8 +90,10 @@ class TutorAgent:
         base_url: Optional[str] = None,
         model: Optional[str] = None,
         mock: bool = False,
+        subject_name: str = "math",
     ) -> None:
         self._mock = mock
+        self._subject_name = subject_name
         self._api_key = (api_key if api_key is not None else os.environ.get("OPENAI_API_KEY", "")).strip()
         self._base_url = (base_url if base_url is not None else os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")).strip().rstrip("/")
         self._model = (model if model is not None else os.environ.get("LLM_MODEL", "gpt-4o-mini")).strip()
@@ -152,6 +154,7 @@ class TutorAgent:
     ) -> Optional[TutorResponse]:
         result = "correct" if is_correct else "incorrect"
         prompt = PROMPT_TEMPLATE.format(
+            subject_name=self._subject_name,
             topic=topic,
             difficulty=difficulty,
             question_text=question_text,
@@ -189,6 +192,7 @@ class TutorAgent:
         hint_level: int,
     ) -> Optional[str]:
         prompt = HINT_PROMPT_TEMPLATE.format(
+            subject_name=self._subject_name,
             topic=topic,
             difficulty=difficulty,
             question_text=question_text,

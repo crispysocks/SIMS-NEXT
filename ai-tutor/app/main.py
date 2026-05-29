@@ -1,36 +1,58 @@
 """
-AI Math Tutor — FastAPI application.
+AI Tutor -- FastAPI application.
 
 Launch:
     uv run uvicorn app.main:app --reload --port 8000
-    # Swagger UI → http://localhost:8000/docs
+    # Swagger UI -> http://localhost:8000/docs
 """
+
+import os
 
 from fastapi import FastAPI, Depends, HTTPException
 
-from app.engine import QuestionEngine
-from app.mastery import MasteryStore
-from app.recommender import Recommender
+from app.core.mastery import MasteryStore
+from app.core.recommender import Recommender
+from app.core.session import TutorSession
 from app.schemas import (
     AnswerSubmission,
     AnswerResult,
+    DiagnosisResultOut,
     HintResponse,
+    KnowledgeSnippetOut,
     MasteryStateOut,
     ProgressOut,
     QuestionOut,
+    RemediationPlanOut,
     TutorResponseOut,
+    TutoringExplanationOut,
 )
-from app.session import TutorSession
 from app.tutor_agent import TutorAgent
 
 SEED = 42
 
+# Set to "english" to use English subject with tutoring pipeline
+SUBJECT = os.environ.get("AI_TUTOR_SUBJECT", "math")
+
 
 def _create_session() -> TutorSession:
-    engine = QuestionEngine(seed=SEED)
+    agent = TutorAgent(subject_name=SUBJECT)
     store = MasteryStore()
-    rec = Recommender(store)
-    agent = TutorAgent()
+
+    if SUBJECT == "english":
+        from app.subjects.english.engine import EnglishQuestionEngine
+        from app.subjects.english.knowledge import PREREQUISITES as ENG_PREREQS
+        from app.rag.factory import create_pipeline
+
+        engine = EnglishQuestionEngine(seed=SEED)
+        rec = Recommender(store, prerequisites=ENG_PREREQS)
+        pipeline = create_pipeline("english")
+        return TutorSession(engine, store, rec, tutor_agent=agent, tutoring_pipeline=pipeline)
+
+    from app.subjects.math.engine import MathQuestionEngine
+    from app.subjects.math.knowledge import PREREQUISITES
+
+    engine = MathQuestionEngine(seed=SEED)
+    rec = Recommender(store, prerequisites=PREREQUISITES)
     return TutorSession(engine, store, rec, tutor_agent=agent)
 
 
@@ -45,7 +67,24 @@ def get_session() -> TutorSession:
     return _session
 
 
-app = FastAPI(title="AI Math Tutor", version="0.1.0")
+app = FastAPI(title="AI Tutor", version="0.3.0")
+
+# -- Startup logging ---------------------------------------------------------
+
+import logging
+
+_log = logging.getLogger("uvicorn")
+
+# Read RAG config for logging
+_rag_enabled = os.environ.get("RAG_ENABLED", "false").strip().lower() in ("1", "true", "yes")
+_rag_mode = os.environ.get("RAG_RETRIEVER_MODE", "hybrid")
+_rag_llm = os.environ.get("RAG_LLM_ENABLED", "true").strip().lower() in ("1", "true", "yes")
+
+_log.info("Subject: %s", SUBJECT)
+_log.info("RAG enabled: %s", _rag_enabled)
+if _rag_enabled and SUBJECT == "english":
+    _log.info("RAG retriever mode: %s", _rag_mode)
+    _log.info("RAG LLM enabled: %s", _rag_llm)
 
 
 @app.get("/api/question", response_model=QuestionOut)
@@ -54,9 +93,12 @@ def next_question(session: TutorSession = Depends(get_session)) -> QuestionOut:
     q = session.next_question()
     return QuestionOut(
         id=q.id,
+        subject=q.subject,
         topic=q.topic,
         difficulty=q.difficulty,
         question_text=q.question_text,
+        knowledge_tags=q.knowledge_tags,
+        learning_objectives=q.learning_objectives,
     )
 
 
@@ -70,6 +112,7 @@ def submit_answer(
         fb = session.submit_answer(body.student_answer)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
     tr = fb.tutor_response
     return AnswerResult(
         is_correct=fb.is_correct,
@@ -81,6 +124,36 @@ def submit_answer(
             hint=tr.hint,
             encouragement=tr.encouragement,
         ) if tr else None,
+        diagnosis=DiagnosisResultOut(
+            error_types=fb.diagnosis.error_types,
+            diagnosis_labels=fb.diagnosis.diagnosis_labels,
+            confidence=fb.diagnosis.confidence,
+        ) if fb.diagnosis else None,
+        remediation=RemediationPlanOut(
+            recommended_topics=fb.remediation.recommended_topics,
+            retrieval_tags=fb.remediation.retrieval_tags,
+        ) if fb.remediation else None,
+        explanation=TutoringExplanationOut(
+            what_is_wrong=fb.explanation.what_is_wrong,
+            why_it_is_wrong=fb.explanation.why_it_is_wrong,
+            how_to_fix=fb.explanation.how_to_fix,
+            similar_examples=fb.explanation.similar_examples,
+            retrieved_context=fb.explanation.retrieved_context,
+            generation_source=fb.explanation.metadata.get("source"),
+            metadata=fb.explanation.metadata,
+        ) if fb.explanation else None,
+        retrieved_snippets=[
+            KnowledgeSnippetOut(
+                id=s.id,
+                title=s.title,
+                topic=s.topic,
+                tags=s.tags,
+                diagnosis_labels=s.diagnosis_labels,
+                score=s.score,
+                metadata=s.metadata,
+            )
+            for s in fb.knowledge_snippets
+        ],
     )
 
 

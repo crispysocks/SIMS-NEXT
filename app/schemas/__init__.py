@@ -22,6 +22,12 @@ from app.schemas.score_schema import (
     ScoreDetail,
     PaginatedScores,
 )
+from app.schemas.auth import (
+    UserRegister,
+    UserLogin,
+    Token,
+    TokenData,
+)
 
 __all__ = [
     "StudentCreate",
@@ -40,4 +46,8 @@ __all__ = [
     "ScoreUpdate",
     "ScoreDetail",
     "PaginatedScores",
+    "UserRegister",
+    "UserLogin",
+    "Token",
+    "TokenData",
 ]

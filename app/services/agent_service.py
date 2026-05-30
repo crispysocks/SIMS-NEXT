@@ -133,8 +133,15 @@ class AgentService:
                     "result": result
                 })
 
+            assistant_msg = {"role": "assistant"}
             if assistant_content:
-                messages.append({"role": "assistant", "content": "".join(assistant_content)})
+                assistant_msg["content"] = "".join(assistant_content)
+            if valid_tool_calls:
+                assistant_msg["tool_calls"] = [
+                    {"id": tc["id"], "type": "function", "function": tc["function"]}
+                    for tc in valid_tool_calls
+                ]
+            messages.append(assistant_msg)
 
             for tr in tool_results:
                 messages.append({

@@ -157,6 +157,38 @@ TOOL_DEFINITIONS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_class_ranking",
+            "description": "获取某次考试类型（如'期中考试''第一次月考'）下年级所有班级的均分排名，可查询指定班级排第几",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "class_id": {"type": "integer", "description": "要查询的班级 ID"},
+                    "exam_type": {"type": "string", "description": "考试类型，如'期中考试'、'第一次月考'、'入学摸底'等"},
+                    "semester": {"type": "string", "description": "可选: 学期，如'2025上'"},
+                },
+                "required": ["class_id", "exam_type"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_kp_class_comparison",
+            "description": "对比年级各班在指定知识点上的掌握率差异，用于发现各班的优势/薄弱知识点",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "exam_type": {"type": "string", "description": "考试类型，如'期中考试'、'第一次月考'"},
+                    "kp_ids": {"type": "array", "items": {"type": "integer"}, "description": "可选: 限定知识点 ID"},
+                    "semester": {"type": "string", "description": "可选: 学期"},
+                },
+                "required": ["exam_type"],
+            },
+        },
+    },
 ]
 
 # 注册所有 Tool 函数

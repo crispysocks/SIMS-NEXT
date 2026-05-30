@@ -72,9 +72,74 @@ async def _get_question_quality(args: dict, db) -> dict:
     }
 
 
+async def _get_class_ranking(args: dict, db) -> dict:
+    """获取某班级在年级中的排名（按考试类型，如'期中考试'）。"""
+    repo = ScoreRecordRepo(db)
+    exam_type = args.get("exam_type", "期中考试")
+    class_id = args.get("class_id")
+    semester = args.get("semester")
+
+    all_classes = repo.get_all_class_exam_avgs_by_type(exam_type, semester)
+
+    if not all_classes:
+        return {"summary": f"暂无 {exam_type} 的年级数据", "data_id": None, "full_data": None, "ok": True}
+
+    my_class = next((c for c in all_classes if c["class_id"] == class_id), None)
+    total = len(all_classes)
+    rank = my_class["rank"] if my_class else None
+
+    data_id = str(uuid.uuid4())
+    rank_lines = "\n".join(
+        f"第{c['rank']}名: {c['class_id']}班 均分{c['avg_score']} 得分率{c['avg_rate']}%"
+        for c in all_classes
+    )
+    if my_class:
+        summary = f"{exam_type}年级排名: {class_id}班第{rank}/{total}名（均分{my_class['avg_score']}，得分率{my_class['avg_rate']}%）\n{rank_lines}"
+    else:
+        summary = f"{exam_type}年级排名（共{total}个班）:\n{rank_lines}"
+
+    return {
+        "summary": summary,
+        "data_id": data_id,
+        "full_data": {"exam_type": exam_type, "class_id": class_id, "ranking": all_classes},
+        "ok": True,
+    }
+
+
+async def _get_kp_class_comparison(args: dict, db) -> dict:
+    """对比各班在指定知识点上的掌握率。"""
+    repo = ScoreRecordRepo(db)
+    exam_type = args.get("exam_type", "期中考试")
+    kp_ids = args.get("kp_ids")
+    semester = args.get("semester")
+
+    kp_data = repo.get_grade_kp_mastery_by_type(exam_type, kp_ids, semester)
+
+    if not kp_data:
+        return {"summary": f"暂无 {exam_type} 的知识点对比数据", "data_id": None, "full_data": None, "ok": True}
+
+    data_id = str(uuid.uuid4())
+    summary_parts = [f"{exam_type}各班知识点掌握率对比:"]
+    for kp in kp_data[:10]:
+        class_rates = "、".join(
+            f"{cid}班{rate:.0%}" for cid, rate in sorted(kp["classes"].items())
+        )
+        summary_parts.append(f"  {kp['kp_name']}: {class_rates}")
+
+    summary = "\n".join(summary_parts)
+    return {
+        "summary": summary,
+        "data_id": data_id,
+        "full_data": {"exam_type": exam_type, "kp_comparison": kp_data},
+        "ok": True,
+    }
+
+
 ANALYSIS_TOOLS = {
     "get_class_trend_summary": _get_class_trend_summary,
     "get_enrollment_forecast": _get_enrollment_forecast,
     "get_class_rank_summary": _get_class_rank_summary,
     "get_question_quality": _get_question_quality,
+    "get_class_ranking": _get_class_ranking,
+    "get_kp_class_comparison": _get_kp_class_comparison,
 }

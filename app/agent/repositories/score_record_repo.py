@@ -221,3 +221,93 @@ class ScoreRecordRepo:
                          for s in top_students],
             "common_weak_kps": common_weak,
         }
+
+    def get_all_class_exam_avgs_by_type(
+        self, exam_type: str, semester: str | None = None
+    ) -> list[dict]:
+        """按考试类型获取年级所有班级的均分排名。
+
+        exam_type 如 '第一次月考'、'期中考试'，各班都有同名考试。
+        """
+        from app.models.student import Student
+
+        exam_filter = [Exam.exam_type == exam_type]
+        if semester:
+            exam_filter.append(Exam.semester == semester)
+
+        # 子查询：每个学生在指定考试类型中的总分
+        student_totals = (
+            self.db.query(
+                Exam.class_id,
+                ScoreRecord.student_no,
+                func.sum(ScoreRecord.score).label("total_score"),
+                func.sum(ScoreRecord.max_score).label("total_max"),
+            )
+            .join(Exam, ScoreRecord.exam_id == Exam.id)
+            .filter(and_(*exam_filter))
+            .group_by(Exam.class_id, ScoreRecord.student_no)
+            .subquery()
+        )
+
+        rows = (
+            self.db.query(
+                student_totals.c.class_id,
+                func.count(func.distinct(student_totals.c.student_no)).label("student_count"),
+                func.round(func.avg(student_totals.c.total_score), 1).label("avg_score"),
+                func.round(func.avg(student_totals.c.total_score / student_totals.c.total_max) * 100, 1).label("avg_rate"),
+            )
+            .group_by(student_totals.c.class_id)
+            .order_by(func.avg(student_totals.c.total_score).desc())
+            .all()
+        )
+
+        results = []
+        for rank, r in enumerate(rows, 1):
+            results.append({
+                "rank": rank,
+                "class_id": int(r.class_id),
+                "student_count": int(r.student_count),
+                "avg_score": float(r.avg_score),
+                "avg_rate": float(r.avg_rate),
+            })
+        return results
+
+    def get_grade_kp_mastery_by_type(
+        self, exam_type: str, kp_ids: list[int] | None = None, semester: str | None = None
+    ) -> list[dict]:
+        """按考试类型获取年级各知识点在各班的掌握率对比。"""
+        exam_filter = [Exam.exam_type == exam_type]
+        if semester:
+            exam_filter.append(Exam.semester == semester)
+
+        q = (
+            self.db.query(
+                Exam.class_id,
+                QuestionKnowledgePoint.kp_id,
+                KnowledgePoint.name.label("kp_name"),
+                func.sum(ScoreRecord.score).label("total_score"),
+                func.sum(ScoreRecord.max_score).label("total_max"),
+            )
+            .join(Exam, ScoreRecord.exam_id == Exam.id)
+            .join(Question, ScoreRecord.question_id == Question.id)
+            .join(QuestionKnowledgePoint, Question.id == QuestionKnowledgePoint.question_id)
+            .join(KnowledgePoint, QuestionKnowledgePoint.kp_id == KnowledgePoint.id)
+            .filter(and_(*exam_filter))
+        )
+
+        if kp_ids:
+            q = q.filter(QuestionKnowledgePoint.kp_id.in_(kp_ids))
+
+        rows = q.group_by(Exam.class_id, QuestionKnowledgePoint.kp_id, KnowledgePoint.name).all()
+
+        # 按知识点分组
+        from collections import defaultdict
+        kp_groups: dict[int, dict] = defaultdict(lambda: {"kp_id": 0, "kp_name": "", "classes": {}})
+        for r in rows:
+            kp_id = int(r.kp_id)
+            kp_groups[kp_id]["kp_id"] = kp_id
+            kp_groups[kp_id]["kp_name"] = r.kp_name
+            rate = float(r.total_score) / float(r.total_max) if float(r.total_max) else 0
+            kp_groups[kp_id]["classes"][int(r.class_id)] = round(rate, 4)
+
+        return sorted(kp_groups.values(), key=lambda x: x["kp_id"])

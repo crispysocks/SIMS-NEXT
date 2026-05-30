@@ -26,7 +26,7 @@ class StudentRepo:
         r = self.db.query(Student).filter(Student.student_no == student_no).first()
         if not r:
             return None
-        return {"student_no": r.student_no, "name": r.name, "gender": r.gender}
+        return {"student_no": r.student_no, "name": r.name, "gender": r.gender, "class_id": r.class_id}
 
     def get_class_student_nos(self, class_id: int) -> list[str]:
         """获取某班级所有学生的学号列表。"""

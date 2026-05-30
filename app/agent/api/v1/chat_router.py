@@ -84,16 +84,60 @@ def archive_session(session_id: str, db: Session = Depends(get_db)):
 
 # ── Chat Stream ─────────────────────────────────
 
-@router.post("/message")
+@router.post("/stream")
+async def chat_stream(req: SendMessageRequest, db: Session = Depends(get_db)):
+    """发送消息并直接返回 SSE 流式回复——老师只需调这一个接口。
+
+    前端用法 (fetch + ReadableStream):
+      const resp = await fetch('/chat/stream', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({session_id, text})
+      })
+      const reader = resp.body.getReader()
+      // 逐块读取 SSE 事件
+    """
+    sm = SessionManager(db)
+    session = sm.get_session(req.session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="会话不存在")
+
+    async def event_generator():
+        async for sse_str in run_agent_loop(
+            db=db,
+            sm=sm,
+            session_id=req.session_id,
+            user_message=req.text,
+            class_id=session.class_id,
+            class_name=session.title or f"班级{session.class_id}",
+        ):
+            yield sse_str
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+# ── 以下为兼容旧版两步式接口，新开发请用上面的 POST /chat/stream ──
+
+@router.post("/message", deprecated=True)
 def send_message(req: SendMessageRequest):
-    """提交用户消息，返回 stream_id 用于 SSE 连接。"""
+    """[已废弃] 两步式第1步：提交消息，获取 stream_id。
+    新开发请直接用 POST /chat/stream 一步到位。"""
     stream_id = session_manager.create_stream(req.session_id, req.text)
     return {"stream_id": stream_id, "session_id": req.session_id}
 
 
-@router.get("/stream/{stream_id}")
+@router.get("/stream/{stream_id}", deprecated=True)
 async def stream_chat(stream_id: str, db: Session = Depends(get_db)):
-    """SSE 流式端点——前端用 EventSource 连接此 URL。"""
+    """[已废弃] 两步式第2步：用 stream_id 连接 SSE。
+    新开发请直接用 POST /chat/stream 一步到位。"""
     data = session_manager.get_stream(stream_id)
     if not data:
         raise HTTPException(status_code=404, detail="stream_id 无效或已过期")

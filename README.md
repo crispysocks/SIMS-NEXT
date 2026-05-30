@@ -325,6 +325,38 @@ npm run dev
 |--------|--------|------|
 | `VITE_API_BASE_URL` | /api/v1 | 前端 API 请求基础路径 |
 
+### OpenAI API 配置
+
+| 变量名 | 说明 |
+|--------|------|
+| `OPENAI_API_KEY` | OpenAI API Key（用于四大名著问答助手） |
+
+## 四大名著问答助手
+
+基于 PageIndex 的 vectorless RAG 系统，支持对《三国演义》《水浒传》《红楼梦》《西游记》进行智能问答。
+
+### 启动问答助手
+
+```bash
+# 1. 配置 OpenAI API Key
+export OPENAI_API_KEY=your-api-key  # Linux/Mac
+set OPENAI_API_KEY=your-api-key      # Windows PowerShell
+
+# 2. 启动后端
+uv run fastapi dev app/main.py
+
+# 3. 启动前端（另开终端）
+cd frontend && npm run dev
+```
+
+访问前端聊天界面，输入问题即可获得流式回答。
+
+### API 端点
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/v1/agent/chat | 四大名著智能问答（流式响应） |
+
 ## 许可证
 
 MIT License

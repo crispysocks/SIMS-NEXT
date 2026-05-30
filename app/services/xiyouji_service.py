@@ -137,4 +137,5 @@ class XiyoujiService:
             "personality": personality,
             "emotion": emotion,
             "tone": tone,
+            "source": examples_text,
         }

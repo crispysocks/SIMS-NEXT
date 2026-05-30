@@ -19,3 +19,4 @@ class ChatResponse(BaseModel):
     personality: str | None = None
     emotion: str | None = None
     tone: str | None = None
+    source: str | None = Field(default=None, description="RAG检索到的示例文本")

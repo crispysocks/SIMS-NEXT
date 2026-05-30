@@ -329,7 +329,8 @@ npm run dev
 
 | 变量名 | 说明 |
 |--------|------|
-| `OPENAI_API_KEY` | OpenAI API Key（用于四大名著问答助手） |
+| `OPENAI_API_KEY` | API Key（支持 OpenAI 或兼容 OpenAI 风格的第三方 API） |
+| `OPENAI_API_BASE_URL` | API 地址（默认 `https://api.openai.com/v1`） |
 
 ## 四大名著问答助手
 

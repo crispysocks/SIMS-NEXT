@@ -57,9 +57,12 @@ MAX_TOOL_CALLS = 3
 class AgentService:
     """Agent 服务：LLM 调用 + Tool Calling Loop + SSE 流式输出"""
 
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: str = None, base_url: str = None):
         self.rag = RAGService()
-        self.client = OpenAI(api_key=api_key or os.getenv("OPENAI_API_KEY"))
+        self.client = OpenAI(
+            api_key=api_key or os.getenv("OPENAI_API_KEY"),
+            base_url=base_url or os.getenv("OPENAI_API_BASE_URL") or "https://api.openai.com/v1"
+        )
 
     def _call_tool(self, name: str, arguments: dict) -> str:
         """执行工具调用"""

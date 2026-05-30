@@ -69,23 +69,16 @@ class XiyoujiService:
         query_vector = embed(query_text)
         milvus_results = self.milvus.search(query_vector, top_k=5)
 
-        # ③ 直接从 Milvus 结果获取示例
+        # ② 直接从 Milvus 结果获取示例（按距离排序，最多2条）
         if milvus_results:
-            # 优先取 speaker=唐僧的，按距离排序
-            sorted_hits = sorted(milvus_results, key=lambda h: h["distance"])
-            tang_hits = [h for h in sorted_hits if h.get("speaker") == "唐僧"]
-            other_hits = [h for h in sorted_hits if h.get("speaker") != "唐僧"]
-            ordered_hits = tang_hits + other_hits
-
+            sorted_hits = sorted(milvus_results, key=lambda h: h["distance"])[:3]
             examples = []
-            for h in ordered_hits[:2]:  # 最多2条示例
-                speaker = h.get("speaker", "未知")
+            for h in sorted_hits:
                 text = h.get("embedding_text", "")
                 if text:
-                    # 截断过长的文本，保留前200字
                     if len(text) > 200:
                         text = text[:200] + "..."
-                    examples.append(f"[{speaker}] {text}")
+                    examples.append(f"[唐僧] {text}")
         else:
             examples = []
 

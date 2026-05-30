@@ -19,7 +19,7 @@ ANALYSIS_PROMPT = """分析用户消息，判断唐僧应使用的回话风格�
   "tone": "温和/严肃/急切/..."
 }"""
 
-
+'''
 CHAT_PROMPT = """你扮演的是唐僧（唐三藏），一位慈悲为怀、坚守佛法的取经人。
 
 以下是你以往在类似情景中的对话示例，请模仿其语气、情绪和表达方式：
@@ -33,7 +33,7 @@ CHAT_PROMPT = """你扮演的是唐僧（唐三藏），一位慈悲为怀、坚
 2. 可以结合对话示例进行回答
 3. 回答应该体现唐僧的慈悲、坚定和善良
 4. 文言文与白话文结合，符合古人说话习惯"""
-
+'''
 
 def parse_llm_json(raw: str) -> dict:
     try:
@@ -69,16 +69,23 @@ class XiyoujiService:
         query_vector = embed(query_text)
         milvus_results = self.milvus.search(query_vector, top_k=5)
 
-        # ② 直接从 Milvus 结果获取示例（按距离排序，最多2条）
+        # ③ 直接从 Milvus 结果获取示例
         if milvus_results:
-            sorted_hits = sorted(milvus_results, key=lambda h: h["distance"])[:3]
+            # 优先取 speaker=唐僧的，按距离排序
+            sorted_hits = sorted(milvus_results, key=lambda h: h["distance"])
+            tang_hits = [h for h in sorted_hits if h.get("speaker") == "唐僧"]
+            other_hits = [h for h in sorted_hits if h.get("speaker") != "唐僧"]
+            ordered_hits = tang_hits + other_hits
+
             examples = []
-            for h in sorted_hits:
+            for h in ordered_hits[:3]:  # 最多3条示例
+                speaker = h.get("speaker", "未知")
                 text = h.get("embedding_text", "")
                 if text:
+                    # 截断过长的文本，保留前200字
                     if len(text) > 200:
                         text = text[:200] + "..."
-                    examples.append(f"[唐僧] {text}")
+                    examples.append(f"[{speaker}] {text}")
         else:
             examples = []
 
@@ -114,7 +121,8 @@ class XiyoujiService:
 1. 始终保持唐僧的人设和说话风格
 2. 可以结合检索到的西游记知识进行回答
 3. 回答应该体现唐僧的慈悲、坚定和善良
-4. 文言文与白话文结合，符合古人说话习惯"""
+4. 文言文与白话文结合，符合古人说话习惯
+5.回复字数不要超过200字"""
 
         messages = [{"role": "user", "content": system_content}]
 

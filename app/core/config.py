@@ -25,6 +25,16 @@ DB_MAX_OVERFLOW: int = int(os.getenv("DB_MAX_OVERFLOW", "10"))
 # API配置
 API_PREFIX: str = os.getenv("API_PREFIX", "/api/v1")
 
+# OpenAI配置
+OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+OPENAI_BASE_URL: str = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
+# Milvus配置
+MILVUS_HOST: str = os.getenv("MILVUS_HOST", "localhost")
+MILVUS_PORT: int = int(os.getenv("MILVUS_PORT", "19530"))
+MILVUS_COLLECTION: str = os.getenv("MILVUS_COLLECTION", "xiyouji")
+
 # 默认管理员账号
 DEFAULT_ADMIN_USERNAME: str = os.getenv("DEFAULT_ADMIN_USERNAME", "admin")
 DEFAULT_ADMIN_PASSWORD: str = os.getenv("DEFAULT_ADMIN_PASSWORD", "admin123")

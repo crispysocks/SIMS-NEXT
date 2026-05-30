@@ -15,8 +15,9 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
+    think: str | None = None
     reply: str
     personality: str | None = None
     emotion: str | None = None
     tone: str | None = None
-    source: str | None = Field(default=None, description="RAG检索到的示例文本")
+    examples: list[dict] | None = Field(default=None, description="RAG检索到的示例列表")

@@ -19,21 +19,6 @@ ANALYSIS_PROMPT = """分析用户消息，判断唐僧应使用的回话风格�
   "tone": "温和/严肃/急切/..."
 }"""
 
-'''
-CHAT_PROMPT = """你扮演的是唐僧（唐三藏），一位慈悲为怀、坚守佛法的取经人。
-
-以下是你以往在类似情景中的对话示例，请模仿其语气、情绪和表达方式：
-
-{examples}
-
-用户对你说：{user_message}
-
-## 回答要求
-1. 始终保持唐僧的人设和说话风格
-2. 可以结合对话示例进行回答
-3. 回答应该体现唐僧的慈悲、坚定和善良
-4. 文言文与白话文结合，符合古人说话习惯"""
-'''
 
 def parse_llm_json(raw: str) -> dict:
     try:
@@ -43,6 +28,20 @@ def parse_llm_json(raw: str) -> dict:
     except Exception:
         pass
     return {"personality": "慈悲", "emotion": "平和", "tone": "温和"}
+
+
+def extract_think_reply(text: str) -> tuple[str, str]:
+    """从LLM回复中提取思考过程和正式回复"""
+    think_match = re.search(r"<think>\s*(.*?)\s*</think>", text, re.DOTALL)
+    if think_match:
+        think = think_match.group(1).strip()
+        # reply 在 </think> 之后
+        reply = text[think_match.end():].strip()
+        # 去掉可能的 markdown 代码块标记
+        reply = re.sub(r"^```(?:markdown)?\s*\n", "", reply)
+        reply = re.sub(r"\n```$", "", reply)
+        return think, reply
+    return "", text
 
 
 class XiyoujiService:
@@ -81,15 +80,22 @@ class XiyoujiService:
             for h in ordered_hits[:3]:  # 最多3条示例
                 speaker = h.get("speaker", "未知")
                 text = h.get("embedding_text", "")
+                distance = h.get("distance", 0.0)
                 if text:
                     # 截断过长的文本，保留前200字
                     if len(text) > 200:
                         text = text[:200] + "..."
-                    examples.append(f"[{speaker}] {text}")
+                    examples.append({
+                        "speaker": speaker,
+                        "text": text,
+                        "score": round(distance, 4)
+                    })
         else:
             examples = []
 
-        examples_text = "\n\n".join(examples) if examples else "（无相关示例）"
+        examples_text = "\n\n".join(
+            f"[{ex['speaker']}] {ex['text']}" for ex in examples
+        ) if examples else "（无相关示例）"
 
         # ④ 组装历史对话
         if history:
@@ -115,28 +121,30 @@ class XiyoujiService:
 历史对话：
 {history_text if history_text else "（无历史对话）"}
 
-用户对你说：{message}
+现在用户对你说：{message} ，你的任务是根据用户的消息，生成符合唐僧回话风格的回复。
 
 ## 回答要求
 1. 始终保持唐僧的人设和说话风格
 2. 可以结合检索到的西游记知识进行回答
 3. 回答应该体现唐僧的慈悲、坚定和善良
 4. 文言文与白话文结合，符合古人说话习惯
-5.回复字数不要超过200字"""
+5. 回复字数不要超过200字"""
 
         messages = [{"role": "user", "content": system_content}]
 
         # ⑥ LLM 生成回复
-        reply = chat(messages)
+        raw_reply = chat(messages)
+        think, reply = extract_think_reply(raw_reply)
 
-        # ⑥ 保存对话
+        # ⑦ 保存对话
         self.repo.save_message(session_id, "user", message, personality, emotion, tone)
         self.repo.save_message(session_id, "assistant", reply, personality, emotion, tone)
 
         return {
+            "think": think,
             "reply": reply,
             "personality": personality,
             "emotion": emotion,
             "tone": tone,
-            "source": examples_text,
+            "examples": examples,
         }

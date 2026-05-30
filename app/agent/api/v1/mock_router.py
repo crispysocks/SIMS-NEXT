@@ -17,14 +17,14 @@ router = APIRouter(prefix="/mock", tags=["agent-mock"])
 
 class GenerateRequest(BaseModel):
     classes: int = Field(default=3, ge=1, le=10)
-    students: int = Field(default=90, ge=10, le=200)
+    students: int = Field(default=5, ge=1, le=200)
     exams: int = Field(default=6, ge=1, le=12)
 
 
 class MockArgs:
     """适配 CLI 的参数对象。"""
     classes: int = 3
-    students: int = 90
+    students: int = 5
     exams: int = 6
 
 

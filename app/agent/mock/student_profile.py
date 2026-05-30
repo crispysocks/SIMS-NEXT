@@ -14,7 +14,7 @@ import math
 
 
 def generate_student_profiles(
-    class_id: int, count: int = 90, seed: int | None = None
+    class_id: int, count: int = 5, seed: int | None = None
 ) -> list[dict]:
     """为指定班级生成 N 个学生画像。
 

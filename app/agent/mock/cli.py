@@ -143,14 +143,30 @@ def cmd_stats(args) -> None:
 
 
 def _clean_all(db: Session) -> None:
-    """按外键依赖顺序清空所有 agent 表。"""
-    db.query(ScoreRecord).delete()
-    db.query(QuestionKnowledgePoint).delete()
-    db.query(Question).delete()
-    db.query(KnowledgeDependency).delete()
-    db.query(KnowledgePoint).delete()
-    db.query(Exam).delete()
-    db.query(Subject).delete()
+    """按外键依赖顺序清空所有 agent 表（含 agent 运行时表）。
+
+    使用 raw SQL + SET FOREIGN_KEY_CHECKS=0 避免自引用 FK
+    (KnowledgePoint.parent_id → id) 和多表间 FK 的删除顺序问题。
+    """
+    from sqlalchemy import text
+
+    tables = [
+        "agent_score_records",
+        "agent_question_kps",
+        "agent_questions",
+        "agent_knowledge_dependencies",
+        "agent_knowledge_points",
+        "agent_exams",
+        "agent_subjects",
+        "agent_sessions",
+        "agent_messages",
+        "agent_tool_calls",
+        "agent_analysis_data",
+    ]
+    db.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
+    for t in tables:
+        db.execute(text(f"DELETE FROM {t}"))
+    db.execute(text("SET FOREIGN_KEY_CHECKS = 1"))
     db.commit()
 
 
@@ -170,7 +186,7 @@ def main() -> None:
 
     gen = subparsers.add_parser("generate", help="生成全套 Mock 数据")
     gen.add_argument("--classes", type=int, default=3, help="班级数量 (默认: 3)")
-    gen.add_argument("--students", type=int, default=90, help="每班学生数 (默认: 90)")
+    gen.add_argument("--students", type=int, default=5, help="每班学生数 (默认: 5)")
     gen.add_argument("--exams", type=int, default=6, help="每班考试数 (默认: 6)")
 
     subparsers.add_parser("clean", help="清空所有 agent 表")

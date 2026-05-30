@@ -130,6 +130,9 @@ def get_rank_summary(req: RankSummaryRequest, db: Session = Depends(get_db)):
         exam_id=req.exam_id,
         top_n=req.top_n,
     )
+    result["class_id"] = req.class_id
+    result["exam_id"] = req.exam_id
+    result["top_n"] = req.top_n
     return result
 
 

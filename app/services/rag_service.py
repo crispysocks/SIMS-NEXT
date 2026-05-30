@@ -1,11 +1,14 @@
-import json
+import os
+from pathlib import Path
 from app.core.pageindex import PageIndexClient
 
 class RAGService:
     """RAG 检索服务，封装 PageIndex"""
 
     def __init__(self, workspace: str = None):
-        self.client = PageIndexClient(workspace=workspace)
+        if workspace is None:
+            workspace = Path(__file__).parent.parent.parent / "workspace" / "novels"
+        self.client = PageIndexClient(workspace=str(workspace))
 
     def get_all_documents(self) -> str:
         """返回所有文档列表（工具调用用）"""

@@ -8,6 +8,7 @@ import { ClassesPage } from '@/pages/Classes';
 import { ScoresPage } from '@/pages/Scores';
 import { ChatPage } from '@/pages/Chat';
 import { PredictionPage } from '@/pages/Prediction';
+import { ChatInterface } from '@/components/ChatInterface';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -37,6 +38,8 @@ function App() {
           <Route path="scores" element={<ScoresPage />} />
           <Route path="chat" element={<ChatPage />} />
           <Route path="prediction" element={<PredictionPage />} />
+          <Route path="agent" element={<ChatPage />} />
+          <Route path="novels" element={<ChatInterface />} />
         </Route>
       </Routes>
     </BrowserRouter>

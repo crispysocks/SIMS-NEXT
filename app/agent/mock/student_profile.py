@@ -36,7 +36,7 @@ def generate_student_profiles(
     profiles = []
     for i in range(1, count + 1):
         student_no = f"S{class_id:02d}{i:03d}"
-        name = _generate_name(i)
+        name = _generate_name(i, class_id)
 
         base = max(10, min(98, round(random.gauss(class_avg, class_std), 1)))
         learning_speed = round(random.uniform(-0.8, 1.0), 3)
@@ -53,10 +53,16 @@ def generate_student_profiles(
             "综合应用": round(random.gauss(0, 0.25), 3),
         }
 
+        age = random.randint(13, 15)
+        enrollment_date = "2025-09-01"
+
         profiles.append({
             "student_no": student_no,
             "name": name,
+            "gender": "男" if i % 2 == 0 else "女",
+            "age": age,
             "class_id": class_id,
+            "enrollment_date": enrollment_date,
             "profile": {
                 "base_level": base,
                 "learning_speed": learning_speed,
@@ -70,7 +76,7 @@ def generate_student_profiles(
     return profiles
 
 
-def _generate_name(index: int) -> str:
+def _generate_name(index: int, class_id: int = 0) -> str:
     """生成中文姓名（从常见姓氏+名字中选取）。"""
     surnames = [
         "张", "李", "王", "刘", "陈", "杨", "赵", "黄", "周", "吴",
@@ -90,6 +96,7 @@ def _generate_name(index: int) -> str:
         "思", "雨", "欣", "子涵", "梓", "辰", "泽", "瑞", "佳", "怡",
         "悦", "诗", "琪", "瑜", "婉", "娴", "雅", "清", "岚", "若",
     ]
-    surname = surnames[(index * 17) % len(surnames)]
-    given = given_chars[(index * 31) % len(given_chars)]
+    offset = index + class_id * 100
+    surname = surnames[(offset * 17) % len(surnames)]
+    given = given_chars[(offset * 31) % len(given_chars)]
     return surname + given

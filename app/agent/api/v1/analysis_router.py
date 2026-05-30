@@ -162,3 +162,37 @@ def get_class_exams(class_id: int, subject_id: int | None = None, db: Session = 
     repo = ExamRepo(db)
     exams = repo.get_by_class(class_id, subject_id)
     return {"class_id": class_id, "exams": exams}
+
+
+# ── 班级考试总成绩 ──────────────────────────────
+
+@router.get("/exam-scores/{class_id}")
+def get_class_exam_scores(
+    class_id: int,
+    exam_id: int,
+    db: Session = Depends(get_db),
+):
+    """某班某次考试的学生总分排名（含姓名）。"""
+    from app.agent.repositories.student_repo import StudentRepo
+
+    score_repo = ScoreRecordRepo(db)
+    student_repo = StudentRepo(db)
+
+    scores = score_repo.get_student_total_scores(class_id, exam_id)
+    students = {s["student_no"]: s["name"] for s in student_repo.get_by_class(class_id)}
+
+    return {
+        "class_id": class_id,
+        "exam_id": exam_id,
+        "scores": [
+            {
+                "rank": r["rank"],
+                "student_no": r["student_no"],
+                "name": students.get(r["student_no"], ""),
+                "total_score": r["total_score"],
+                "total_max": r["total_max"],
+                "score_rate": round(r["score_rate"], 4),
+            }
+            for r in scores
+        ],
+    }

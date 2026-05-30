@@ -89,6 +89,16 @@ class ScoreRecordRepo:
         self, class_id: int, exam_id: int
     ) -> list[dict]:
         """获取某班某次考试每个学生的总分和排名。"""
+        from app.models.student import Student
+
+        class_student_nos = [
+            r[0] for r in
+            self.db.query(Student.student_no).filter(Student.class_id == class_id).all()
+        ]
+
+        if not class_student_nos:
+            return []
+
         rows = (
             self.db.query(
                 ScoreRecord.student_no,
@@ -96,6 +106,7 @@ class ScoreRecordRepo:
                 func.sum(ScoreRecord.max_score).label("total_max"),
             )
             .filter(ScoreRecord.exam_id == exam_id)
+            .filter(ScoreRecord.student_no.in_(class_student_nos))
             .group_by(ScoreRecord.student_no)
             .all()
         )

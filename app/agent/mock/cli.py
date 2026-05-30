@@ -29,6 +29,7 @@ from app.agent.models.question import Question
 from app.agent.models.question_kp import QuestionKnowledgePoint
 from app.agent.models.exam import Exam
 from app.agent.models.score_record import ScoreRecord
+from app.models.student import Student
 
 
 SEED = 42
@@ -104,8 +105,24 @@ def cmd_generate(args) -> None:
         first_student_name = all_profiles[0]["name"] if all_profiles else "N/A"
         print(f"[6/7] 学生画像: {student_count} 人 (示例: {first_student_name})")
 
-        # 7. Score Records
+        # 写入 students 表
         batch_size = 500
+        student_records = [
+            dict(
+                student_no=p["student_no"],
+                name=p["name"],
+                gender=p["gender"],
+                age=p["age"],
+                class_id=p["class_id"],
+                enrollment_date=p["enrollment_date"],
+            )
+            for p in all_profiles
+        ]
+        for i in range(0, len(student_records), batch_size):
+            db.bulk_insert_mappings(Student, student_records[i:i + batch_size])
+        db.commit()
+
+        # 7. Score Records
         all_records = generate_scores(all_profiles, all_questions, kp_list, exam_list, seed=SEED)
         for i in range(0, len(all_records), batch_size):
             batch = all_records[i:i + batch_size]
@@ -162,6 +179,7 @@ def _clean_all(db: Session) -> None:
         "agent_messages",
         "agent_tool_calls",
         "agent_analysis_data",
+        "students",
     ]
     db.execute(text("SET FOREIGN_KEY_CHECKS = 0"))
     for t in tables:

@@ -48,10 +48,18 @@ def generate_scores(
     # 按考试排序
     exams_sorted = sorted(exams, key=lambda e: e["exam_date"])
 
+    # 按 class_id 建立考试索引
+    exams_by_class: dict[int, list[dict]] = {}
+    for exam in exams:
+        cid = exam.get("class_id", 0)
+        exams_by_class.setdefault(cid, []).append(exam)
+
     records = []
     for student in profiles:
         p = student["profile"]
-        for exam_idx, exam in enumerate(exams_sorted):
+        student_class = student["class_id"]
+        class_exams = exams_by_class.get(student_class, [])
+        for exam_idx, exam in enumerate(class_exams):
             exam_questions = [q for q in questions if q["exam_id"] == exam["id"]]
             for q in exam_questions:
                 score = _compute_score(student, q, p, kp_id_to_chapter, exam_idx)

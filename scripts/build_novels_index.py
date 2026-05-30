@@ -9,7 +9,7 @@ import re
 import json
 from pathlib import Path
 
-CHAPTER_PATTERN = re.compile(r'^第([一二三四五六七八九十百千万零\d]+)回\s+(.+)$')
+CHAPTER_PATTERN = re.compile(r'^(第[一二三四五六七八九十百千万零\d]+回)[：:，,、\s]+\s*(.+)$')
 RESOURCES_DIR = Path(__file__).parent.parent / "resources"
 WORKSPACE_DIR = Path(__file__).parent.parent / "workspace" / "novels"
 
@@ -41,7 +41,7 @@ def parse_chapters(text: str) -> list[dict]:
 
             chapters.append({
                 'node_id': f"{node_counter:04d}",
-                'title': f"第{match.group(1)}回 {match.group(2)}",
+                'title': f"{match.group(1)} {match.group(2)}",
                 'line_num': line_num,
                 'text': '\n'.join(content_lines[:100]),  # 限制长度
                 'nodes': []

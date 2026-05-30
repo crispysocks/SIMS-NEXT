@@ -327,10 +327,11 @@ npm run dev
 
 ### OpenAI API 配置
 
-| 变量名 | 说明 |
-|--------|------|
-| `OPENAI_API_KEY` | API Key（支持 OpenAI 或兼容 OpenAI 风格的第三方 API） |
-| `OPENAI_API_BASE_URL` | API 地址（默认 `https://api.openai.com/v1`） |
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
+| `OPENAI_API_KEY` | - | API Key（必填） |
+| `OPENAI_API_BASE_URL` | `https://api.openai.com/v1` | API 地址 |
+| `OPENAI_MODEL` | `gpt-4o-mini` | 模型名称 |
 
 ## 四大名著问答助手
 

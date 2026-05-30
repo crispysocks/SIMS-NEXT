@@ -77,8 +77,9 @@ class AgentService:
             )
         return json.dumps({"error": f"Unknown tool: {name}"})
 
-    def chat_stream(self, question: str, model: str = "gpt-4o-mini") -> Iterator[str]:
+    def chat_stream(self, question: str, model: str = None) -> Iterator[str]:
         """流式问答，参考 code.py 的 agent loop"""
+        model = model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": question}

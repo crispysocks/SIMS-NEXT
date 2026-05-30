@@ -20,4 +20,4 @@ class ChatResponse(BaseModel):
     personality: str | None = None
     emotion: str | None = None
     tone: str | None = None
-    examples: list[dict] | None = Field(default=None, description="RAG检索到的示例列表")
+    examples: list[dict] | None = Field(default=None, description="RAG检索到的示例文本")

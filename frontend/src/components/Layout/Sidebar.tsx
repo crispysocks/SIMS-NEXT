@@ -4,6 +4,7 @@ import {
   Users,
   GraduationCap,
   BookOpen,
+  BookOpenCheck,
   BarChart3,
   Shield,
   MessageSquare,
@@ -19,6 +20,7 @@ const menuItems = [
   { path: '/scores', label: '成绩管理', icon: BarChart3 },
   { path: '/prediction', label: '升学预测', icon: Brain },
   { path: '/novels', label: '四大名著助手', icon: MessageSquare },
+  { path: '/tutor', label: 'AI 辅导', icon: BookOpenCheck },
 ];
 
 export function Sidebar() {

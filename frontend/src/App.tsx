@@ -6,6 +6,7 @@ import { StudentsPage } from '@/pages/Students';
 import { TeachersPage } from '@/pages/Teachers';
 import { ClassesPage } from '@/pages/Classes';
 import { ScoresPage } from '@/pages/Scores';
+import { ChatPage } from '@/pages/Chat';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -33,6 +34,7 @@ function App() {
           <Route path="teachers" element={<TeachersPage />} />
           <Route path="classes" element={<ClassesPage />} />
           <Route path="scores" element={<ScoresPage />} />
+          <Route path="chat" element={<ChatPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

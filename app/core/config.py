@@ -28,3 +28,10 @@ API_PREFIX: str = os.getenv("API_PREFIX", "/api/v1")
 # 默认管理员账号
 DEFAULT_ADMIN_USERNAME: str = os.getenv("DEFAULT_ADMIN_USERNAME", "admin")
 DEFAULT_ADMIN_PASSWORD: str = os.getenv("DEFAULT_ADMIN_PASSWORD", "admin123")
+
+# LLM 配置 (Agent)
+LLM_BASE_URL: str = os.getenv("LLM_BASE_URL", "https://api.deepseek.com/v1")
+LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
+LLM_MODEL: str = os.getenv("LLM_MODEL", "deepseek-chat")
+LLM_MAX_RETRIES: int = int(os.getenv("LLM_MAX_RETRIES", "2"))
+LLM_TIMEOUT: int = int(os.getenv("LLM_TIMEOUT", "60"))

@@ -1,0 +1,56 @@
+{
+  "tier_rules": {
+    "A": {
+      "label": "A 层",
+      "rank_percent": 0.25,
+      "description": "总分前 25%，基础扎实，适合培优拓展"
+    },
+    "B": {
+      "label": "B 层",
+      "rank_percent": 0.50,
+      "description": "总分 25%-50%，中上水平，稳定提升即可"
+    },
+    "C": {
+      "label": "C 层",
+      "rank_percent": 0.75,
+      "description": "总分 50%-75%，中等偏下，存在薄弱环节"
+    },
+    "D": {
+      "label": "D 层",
+      "rank_percent": 1.0,
+      "description": "总分后 25%，基础薄弱，需要重点关注"
+    }
+  },
+
+  "weak_point": {
+    "threshold": 0.60,
+    "description": "知识点掌握率低于此值判定为薄弱",
+    "min_sample_size": 5,
+    "description_min_sample": "最少需要该知识点的题目数量"
+  },
+
+  "question_quality": {
+    "low_discrimination_threshold": 0.20,
+    "min_discrimination_threshold": 0.40,
+    "description": "区分度 < 0.2 为低质量题目，0.2-0.4 为一般，> 0.4 为优秀"
+  },
+
+  "enrollment": {
+    "default_score_line": 65,
+    "borderline_range": 5,
+    "description": "默认上线分 65（百分制），临界生 = [target-5, target)"
+  },
+
+  "trend": {
+    "decline_threshold": -3.0,
+    "improve_threshold": 3.0,
+    "description": "斜率 < -3 为下降趋势，> 3 为上升趋势"
+  },
+
+  "protection_rules": {
+    "min_tier_size": 3,
+    "description": "每层最少人数，避免极端分层",
+    "max_tier_jump": 2,
+    "description": "单次考试最多跨越层数，防止分层剧烈波动"
+  }
+}

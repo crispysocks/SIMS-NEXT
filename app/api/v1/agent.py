@@ -7,7 +7,7 @@ router = APIRouter(prefix="/agent", tags=["Agent"])
 
 class ChatRequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=1000)
-    model: str = Field(default="gpt-4o-mini")
+    model: str | None = Field(default=None)
 
 @router.post("/chat")
 async def chat(request: ChatRequest):

@@ -1,8 +1,11 @@
 import os
 import json
+import logging
 from typing import Iterator
 from openai import OpenAI
 from app.services.rag_service import RAGService
+
+logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """你是一个四大名著专家，精通《三国演义》、《水浒传》、《红楼梦》、《西游记》。
 
@@ -123,11 +126,15 @@ class AgentService:
             if not valid_tool_calls:
                 break
 
+            logger.info(f"[Agent] 第 {tool_call_count + 1} 次调用工具: {[tc['function']['name'] for tc in valid_tool_calls]}")
+
             tool_results = []
             for tc in valid_tool_calls:
                 func_name = tc["function"]["name"]
                 func_args = json.loads(tc["function"]["arguments"]) if tc["function"]["arguments"] else {}
+                logger.info(f"[Agent] 调用工具 {func_name}, 参数: {func_args}")
                 result = self._call_tool(func_name, func_args)
+                logger.info(f"[Agent] 工具 {func_name} 返回结果长度: {len(result)}")
                 tool_results.append({
                     "tool_call_id": tc["id"],
                     "result": result

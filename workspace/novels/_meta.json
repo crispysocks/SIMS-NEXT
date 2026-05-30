@@ -1,0 +1,26 @@
+{
+  "三国演义": {
+    "doc_name": "三国演义",
+    "type": "novel",
+    "path": "D:\\Projects-dev\\SIMS-NEXT\\workspace\\novels\\三国演义_index.json",
+    "line_count": 1822
+  },
+  "水浒传": {
+    "doc_name": "水浒传",
+    "type": "novel",
+    "path": "D:\\Projects-dev\\SIMS-NEXT\\workspace\\novels\\水浒传_index.json",
+    "line_count": 7542
+  },
+  "红楼梦": {
+    "doc_name": "红楼梦",
+    "type": "novel",
+    "path": "D:\\Projects-dev\\SIMS-NEXT\\workspace\\novels\\红楼梦_index.json",
+    "line_count": 6301
+  },
+  "西游记": {
+    "doc_name": "西游记",
+    "type": "novel",
+    "path": "D:\\Projects-dev\\SIMS-NEXT\\workspace\\novels\\西游记_index.json",
+    "line_count": 3605
+  }
+}

@@ -21,6 +21,7 @@ from app.agent.api.v1.mock_router import router as agent_mock_router
 from app.predict.api.v1.predict_router import router as predict_router
 from app.predict.api.v1.admission_router import router as admission_router
 from app.predict.api.v1.advice_router import router as advice_router
+from app.api.v1.tutor_router import router as tutor_router
 
 
 @asynccontextmanager
@@ -49,6 +50,8 @@ app.include_router(predict_router, prefix=API_PREFIX)
 app.include_router(admission_router, prefix=API_PREFIX)
 app.include_router(advice_router, prefix=API_PREFIX)
 app.include_router(novels_router, prefix=API_PREFIX)
+app.include_router(tutor_router, prefix=API_PREFIX)
+
 app.include_router(agent_chat_router, prefix=f"{API_PREFIX}/agent")
 app.include_router(agent_analysis_router, prefix=f"{API_PREFIX}/agent")
 app.include_router(agent_report_router, prefix=f"{API_PREFIX}/agent")

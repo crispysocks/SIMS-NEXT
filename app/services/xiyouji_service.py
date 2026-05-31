@@ -19,6 +19,9 @@ ANALYSIS_PROMPT = """分析用户消息，判断唐僧应使用的回话风格�
   "tone": "温和/严肃/急切/..."
 }"""
 
+JOURNEY_KEYWORDS = ["加入取经队伍", "开始取经", "我要取经", "成为徒弟", "取经游戏"]
+JOURNEY_EXIT_KEYWORDS = ["退出游戏", "退出取经", "不玩了", "结束游戏", "退出"]
+
 
 def parse_llm_json(raw: str) -> dict:
     try:
@@ -49,6 +52,12 @@ class XiyoujiService:
         self.db = db
         self.repo = XiyoujiRepository(db)
         self.milvus = MilvusService()
+
+    def is_journey_intent(self, message: str) -> bool:
+        for keyword in JOURNEY_KEYWORDS:
+            if keyword in message:
+                return True
+        return False
 
     def chat(
         self, session_id: str, message: str, history: Optional[list[Message]] = None

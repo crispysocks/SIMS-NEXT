@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.core.config import API_PREFIX
-from app.core.seed import seed_default_admin
+from app.core.seed import seed_default_admin, create_missing_tables
 from conflg.logging_config import setup_logging
 
 setup_logging()
@@ -25,6 +25,7 @@ from app.agent.api.v1.mock_router import router as agent_mock_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     seed_default_admin()
+    create_missing_tables()
     yield
 
 

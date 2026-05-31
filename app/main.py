@@ -12,7 +12,7 @@ from app.api.v1.teacher import router as teacher_router
 from app.api.v1.class_router import router as class_router
 from app.api.v1.score_router import router as score_router
 from app.api.v1.auth import router as auth_router
-from app.api.v1.agent import router as agent_router
+from app.api.v1.novels import router as novels_router
 from app.agent.api.v1.chat_router import router as agent_chat_router
 from app.agent.api.v1.analysis_router import router as agent_analysis_router
 from app.agent.api.v1.report_router import router as agent_report_router
@@ -48,7 +48,7 @@ app.include_router(auth_router, prefix=API_PREFIX)
 app.include_router(predict_router, prefix=API_PREFIX)
 app.include_router(admission_router, prefix=API_PREFIX)
 app.include_router(advice_router, prefix=API_PREFIX)
-app.include_router(agent_router, prefix=API_PREFIX)
+app.include_router(novels_router, prefix=API_PREFIX)
 app.include_router(agent_chat_router, prefix=f"{API_PREFIX}/agent")
 app.include_router(agent_analysis_router, prefix=f"{API_PREFIX}/agent")
 app.include_router(agent_report_router, prefix=f"{API_PREFIX}/agent")

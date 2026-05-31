@@ -18,4 +18,5 @@ dependencies = [
     "openai>=2.38.0",
     "pypdf2>=3.0.1",
     "pyyaml>=6.0.3",
+    "pymilvus>=3.0.0",
 ]

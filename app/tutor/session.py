@@ -68,7 +68,7 @@ class SessionState:
 
 
 class TutorSession:
-    """Deterministic tutoring loop connecting engine �?mastery �?recommender.
+    """Deterministic tutoring loop connecting engine, mastery, recommender.
 
     Usage:
         engine = QuestionEngine(seed=42)
@@ -150,7 +150,7 @@ class TutorSession:
 
         if level > 3:
             return HintResponse(
-                hint="已达到最大提示次数，请尝试作答�?,
+                hint="已达到最大提示次数，请尝试作答。",
                 level=3,
                 remaining=0,
             )
@@ -166,7 +166,7 @@ class TutorSession:
 
         if hint_text is None:
             from app.tutor.tutor_agent import HINT_FALLBACKS
-            hint_text = HINT_FALLBACKS.get(level, "请尝试作答�?)
+            hint_text = HINT_FALLBACKS.get(level, "请尝试作答。")
 
         self._state.hint_counts[q.id] = level
         remaining = 3 - level
@@ -187,7 +187,7 @@ class TutorSession:
         )
 
     def reset(self) -> None:
-        """Reset all state �?mastery, recommender history, and session."""
+        """Reset all state: mastery, recommender history, and session."""
         self._mastery.reset()
         self._state = SessionState()
 

@@ -1,5 +1,5 @@
 """
-Minimal LLM tutoring layer �?pedagogical interaction only.
+Minimal LLM tutoring layer — pedagogical interaction only.
 
 The LLM is NOT allowed to determine correctness, update mastery,
 or control recommendations. The deterministic core remains authoritative.
@@ -67,8 +67,8 @@ Example: {{"hint": "回忆一下平方差公式 a²-b² = (a+b)(a-b)"}}"""
 
 HINT_FALLBACKS = {
     1: "仔细读题，想想这道题涉及哪个知识点？",
-    2: "试着写出你已知的中间步骤，看看卡在哪里�?,
-    3: "回顾已学过的类似题目，对比一下解法�?,
+    2: "试着写出你已知的中间步骤，看看卡在哪里。",
+    3: "回顾已学过的类似题目，对比一下解法。",
 }
 
 
@@ -235,12 +235,12 @@ class TutorAgent:
     def _mock_feedback(self, is_correct: bool) -> TutorResponse:
         if is_correct:
             return TutorResponse(
-                explanation="回答正确！你的解题思路很清晰�?,
-                hint="继续挑战更高难度吧，试试下一题�?,
+                explanation="回答正确！你的解题思路很清晰。",
+                hint="继续挑战更高难度吧，试试下一题。",
                 encouragement="很棒，保持这个势头！",
             )
         return TutorResponse(
-            explanation="答案不对，请仔细检查计算步骤�?,
-            hint="试着换一种方法，或者从已知条件重新推导�?,
+            explanation="答案不对，请仔细检查计算步骤。",
+            hint="试着换一种方法，或者从已知条件重新推导。",
             encouragement="别灰心，犯错是学习的一部分，再试一次！",
         )

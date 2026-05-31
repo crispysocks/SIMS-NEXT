@@ -27,7 +27,7 @@ class Question:
 def safe_parse(s: str) -> Optional[sympy.Expr]:
     """Parse a user-submitted string into a SymPy expression.
 
-    Returns None on any failure â€?never raises.
+    Returns None on any failure â€” never raises.
     """
     if not s or not s.strip():
         return None
@@ -35,7 +35,7 @@ def safe_parse(s: str) -> Optional[sympy.Expr]:
         return sympy.parse_expr(s.strip(), evaluate=False)
     except Exception:
         # SymPy may raise SympifyError, SyntaxError, TypeError, ValueError,
-        # or Python's tokenize.TokenError. Catch all â€?contract is "never raise".
+        # or Python's tokenize.TokenError. Catch all â€” contract is "never raise".
         return None
 
 

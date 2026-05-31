@@ -1,4 +1,4 @@
-"""Subject engine interface �?the contract every subject module must fulfill.
+"""Subject engine interface — the contract every subject module must fulfill.
 
 Defines four data structures and the SubjectEngine ABC that decouples
 the core tutoring loop from subject-specific question generation,
@@ -27,7 +27,7 @@ class Question:
 
 @dataclass
 class ValidationResult:
-    """Correctness only �?no diagnosis, no remediation."""
+    """Correctness only — no diagnosis, no remediation."""
 
     is_correct: bool
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -35,7 +35,7 @@ class ValidationResult:
 
 @dataclass
 class DiagnosisResult:
-    """What went wrong �?error classification and misconception labels."""
+    """What went wrong — error classification and misconception labels."""
 
     error_types: list[str] = field(default_factory=list)
     diagnosis_labels: list[str] = field(default_factory=list)
@@ -45,7 +45,7 @@ class DiagnosisResult:
 
 @dataclass
 class RemediationPlan:
-    """What to teach next �?recommended topics and retrieval tags."""
+    """What to teach next — recommended topics and retrieval tags."""
 
     recommended_topics: list[str] = field(default_factory=list)
     retrieval_tags: list[str] = field(default_factory=list)
@@ -56,7 +56,7 @@ class SubjectEngine(ABC):
     """Contract for subject-specific engines.
 
     Each subject (math, english, ...) provides an implementation.
-    The core tutoring loop only depends on this ABC �?never on
+    The core tutoring loop only depends on this ABC — never on
     subject-specific types or libraries.
     """
 

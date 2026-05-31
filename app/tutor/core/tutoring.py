@@ -1,5 +1,5 @@
 """
-Tutoring feedback pipeline �?shared dataclasses and interface.
+Tutoring feedback pipeline — shared dataclasses and interface.
 
 The tutoring pipeline is an optional injectable that enriches
 AnswerFeedback with plain-language explanations and retrieved
@@ -35,7 +35,7 @@ class KnowledgeSnippet:
 class TutoringExplanation:
     """Plain-language explanation for a wrong answer.
 
-    All fields are deterministic �?no LLM output.
+    All fields are deterministic — no LLM output.
     """
 
     what_is_wrong: str
@@ -61,7 +61,7 @@ class TutoringPipeline(ABC):
     Each subject module provides an implementation that wires:
         diagnosis -> retrieval -> explanation
 
-    The session never imports subject-specific code �?it only
+    The session never imports subject-specific code — it only
     depends on this ABC.
     """
 

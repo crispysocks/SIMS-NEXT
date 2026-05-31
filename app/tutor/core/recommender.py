@@ -29,16 +29,16 @@ class Recommender:
       - prerequisite graph (supplied by caller, not hardcoded)
 
     Policy (evaluated in order):
-      1. Prerequisite gating �?block topics whose prereqs are below 0.6.
-      2. Challenge zone [0.4, 0.7] �?prefer topics where the student is learning.
-      3. Uncertainty exploration �?within the same tier, prefer higher variance.
-      4. Anti-frustration �?after 3 consecutive wrong answers, lower difficulty
+      1. Prerequisite gating — block topics whose prereqs are below 0.6.
+      2. Challenge zone [0.4, 0.7] — prefer topics where the student is learning.
+      3. Uncertainty exploration — within the same tier, prefer higher variance.
+      4. Anti-frustration — after 3 consecutive wrong answers, lower difficulty
          and avoid the most recent topic.
 
     Difficulty mapping (from the chosen topic's mastery):
-      mastery < 0.4  �?easy
-      0.4 �?0.7     �?medium
-      > 0.7         �?hard
+      mastery < 0.4  → easy
+      0.4–0.7       → medium
+      > 0.7         → hard
     """
 
     def __init__(
@@ -94,19 +94,19 @@ class Recommender:
 
         Returns (topic, tier_label).
         """
-        # Tier 1 �?challenge zone [0.4, 0.7]: pick highest variance
+        # Tier 1 — challenge zone [0.4, 0.7]: pick highest variance
         in_zone = [
             t for t in eligible if CHALLENGE_LOW <= states[t].mastery <= CHALLENGE_HIGH
         ]
         if in_zone:
             return max(in_zone, key=lambda t: states[t].variance), "challenge"
 
-        # Tier 2 �?below 0.4: pick highest mastery (closest to entering zone)
+        # Tier 2 — below 0.4: pick highest mastery (closest to entering zone)
         below = [t for t in eligible if states[t].mastery < CHALLENGE_LOW]
         if below:
             return max(below, key=lambda t: states[t].mastery), "reinforcement"
 
-        # Tier 3 �?all > 0.7: spiral review, pick lowest mastery
+        # Tier 3 — all > 0.7: spiral review, pick lowest mastery
         chosen = min(eligible, key=lambda t: states[t].mastery)
         return chosen, "spiral"
 

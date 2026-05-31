@@ -1,20 +1,20 @@
 """
-Math educational ontology �?topic labels, prerequisites, knowledge tags,
+Math educational ontology — topic labels, prerequisites, knowledge tags,
 and learning objectives for the math subject module.
 """
 
 SUBJECT_NAME = "math"
 
 TOPIC_NAMES = {
-    "linear_equation": "一元一次方�?,
-    "quadratic_equation": "一元二次方�?,
+    "linear_equation": "一元一次方程",
+    "quadratic_equation": "一元二次方程",
     "factoring": "因式分解",
     "derivative": "求导",
     "integral": "积分",
 }
 
 DIFFICULTY_LABELS = {
-    "easy": "简�?,
+    "easy": "简单",
     "medium": "中等",
     "hard": "困难",
 }
@@ -27,7 +27,7 @@ PREREQUISITES = {
     "integral": ["derivative"],
 }
 
-# Educational ontology �?topic -> fine-grained knowledge tags
+# Educational ontology — topic -> fine-grained knowledge tags
 TOPIC_TO_KNOWLEDGE = {
     "linear_equation": ["linear_equation", "solving", "algebraic_manipulation"],
     "quadratic_equation": ["quadratic_equation", "solving", "factoring", "roots"],

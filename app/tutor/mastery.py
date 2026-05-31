@@ -10,8 +10,8 @@ PRIOR_BETA = 3.0
 class MasteryState:
     """Per-topic mastery belief modeled as a Beta distribution.
 
-    Prior: Beta(3, 3) â€?symmetric, mean 0.5, high initial uncertainty.
-    After each answer: correct â†?alpha += 1, wrong â†?beta += 1.
+    Prior: Beta(3, 3) â€” symmetric, mean 0.5, high initial uncertainty.
+    After each answer: correct â†’ alpha += 1, wrong â†’ beta += 1.
     """
 
     topic_id: str
@@ -23,12 +23,12 @@ class MasteryState:
 
     @property
     def mastery(self) -> float:
-        """Posterior mean â€?estimated probability of correct answer."""
+        """Posterior mean â€” estimated probability of correct answer."""
         return self.alpha / (self.alpha + self.beta)
 
     @property
     def variance(self) -> float:
-        """Posterior variance â€?higher means less confident.
+        """Posterior variance â€” higher means less confident.
 
         Used by the recommender for tie-breaking:
         when two topics have similar mastery, prefer the one with higher variance.

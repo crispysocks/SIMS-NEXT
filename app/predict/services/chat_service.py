@@ -110,6 +110,9 @@ class ChatService:
                     break
 
         # Build context
+        # Get weak subjects analysis
+        weak_subjects_data = self._analyze_weak_subjects(student_id)
+
         context = {
             "current_score": current_score,
             "current_ranking": prediction.current_ranking,
@@ -127,8 +130,39 @@ class ChatService:
                 "risk_level": risk.risk_level,
                 "risk_tags": risk.risk_tags,
             } if risk else {},
+            "weak_subjects": weak_subjects_data,
         }
         return context
+
+    def _analyze_weak_subjects(self, student_id: int, limit: int = 50) -> dict:
+        """分析薄弱科目"""
+        from collections import defaultdict
+        from app.predict.repositories.exam_record_repository import ExamRecordRepository
+        exam_repo = ExamRecordRepository(self.db)
+        latest_records = exam_repo.get_latest_by_student(student_id, limit=limit)
+        if not latest_records or len(latest_records) < 2:
+            return {}
+
+        subject_records = defaultdict(list)
+        for record in latest_records:
+            subject_records[record.subject].append(record)
+
+        subject_analysis = []
+        for subject, records in subject_records.items():
+            if len(records) < 2:
+                continue
+            records.sort(key=lambda x: x.exam_time)
+            latest_ranking = records[-1].ranking or 999
+            avg_score = sum(r.score for r in records) / len(records)
+            subject_analysis.append({
+                "subject": subject,
+                "avg_score": avg_score,
+                "latest_score": records[-1].score,
+                "latest_ranking": latest_ranking,
+            })
+
+        sorted_subjects = sorted(subject_analysis, key=lambda x: x["latest_ranking"])
+        return {"weak_subjects": sorted_subjects[:3]}
 
     @traceable("ChatService")
     def build_prompt(self, context: dict, user_message: Optional[str], message_count: int, session_messages: list = None) -> str:
@@ -158,21 +192,31 @@ class ChatService:
         """提分咨询Prompt"""
         sim_text = ""
         for sim in context.get("simulation", [])[:4]:
-            sim_text += f"加{sim['score_increase']}分→{sim['new_score']:.0f}分，{sim['school_name']}概率{sim['probability']}%，变化{sim['prob_change']}%；"
+            sim_text += f"加{sim['score_increase']}分→{sim['new_score']:.0f}分，{sim['school_name']}概率{sim['probability']}%，变化{sim['prob_change']}；"
 
-        return f"""基于以下【加分模拟数据】，直接回答用户问题。
+        weak_data = context.get("weak_subjects", {})
+        weak_subjects = weak_data.get("weak_subjects", [])
+        weak_text = ""
+        if weak_subjects:
+            for ws in weak_subjects[:3]:
+                weak_text += f"{ws['subject']}({ws['latest_score']}分,排名{ws['latest_ranking']})；"
 
-【加分模拟数据】（总分变化，非单科）：
-{sim_text}
+        return f"""基于以下数据，回答用户关于提分的问题。
+
+【加分模拟数据】（总分变化）：
+{sim_text if sim_text else "暂无模拟数据"}
+
+【薄弱科目分析】：
+{weak_text if weak_text else "暂无科目数据"}
 
 用户问题：{user_message}
 
 回答要求：
-- 直接给出具体数值变化
-- 不要给选项
+- 先指出薄弱科目，给出针对性建议
+- 如果有模拟数据，引用具体概率变化
 - 50字以内
-- 例子："加10分后，第三中学概率从71%提升到81%，增加了10%"
 """
+
 
     def _build志愿_choice_prompt(self, context: dict, user_message: str) -> str:
         """志愿选择Prompt"""

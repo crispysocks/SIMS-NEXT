@@ -7,6 +7,7 @@ import {
   BarChart3,
   Shield,
   MessageSquare,
+  Brain,
 } from 'lucide-react';
 
 const menuItems = [
@@ -15,6 +16,7 @@ const menuItems = [
   { path: '/teachers', label: '教师管理', icon: Users },
   { path: '/classes', label: '班级管理', icon: BookOpen },
   { path: '/scores', label: '成绩管理', icon: BarChart3 },
+  { path: '/prediction', label: '升学预测', icon: Brain },
 ];
 
 export function Sidebar() {

@@ -20,8 +20,8 @@ class PredictionService:
     # 三档概率阈值
     PROB_THRESHOLD = {
         "冲刺": 40,   # < 40% → 冲刺
-        "稳定": 75,   # 40% ≤ prob < 75% → 稳定
-        "保底": 100   # ≥ 75% → 保底
+        "稳定": 70,   # 40% ≤ prob < 70% → 稳定
+        "保底": 100   # ≥ 70% → 保底
     }
 
     def __init__(self, db: Session):
@@ -44,7 +44,7 @@ class PredictionService:
         if not latest_records:
             return self._empty_prediction(student_id, student_score)
 
-        current_ranking = latest_records[0].ranking if latest_records else 1
+        current_ranking = latest_records[0].total_ranking if (latest_records and latest_records[0].total_ranking) else (latest_records[0].ranking if latest_records else 1)
 
         # 2. 计算学生能力值
         ability_info = self._calculate_student_ability(latest_records)
@@ -52,12 +52,14 @@ class PredictionService:
         ranking_stability = ability_info["ranking_stability"]
         ranking_trend = ability_info["ranking_trend"]
 
-        # 3. 将能力分转换为排名
-        year = 2026
-        region = student.region or "城区"
-        # 用用户传入的当前总分查一分一段表获取预测排名
-        student_predicted_rank = rank_line_repo.score_to_rank(student_score, region, year)
+        # 3. 基于排名趋势计算预测排名
+        # 不再使用 score_to_rank（中考一分一段表），因为 current_ranking 是本校排名体系
+        # predicted_ranking 应该基于 ranking_trend 和 current_ranking 推算
+        student_predicted_rank = self._calculate_predicted_ranking(
+            current_ranking, ranking_trend, ranking_stability
+        )
 
+        year = 2026
         schools = school_repo.get_all()
 
         school_data = []
@@ -168,10 +170,23 @@ class PredictionService:
         if not records:
             return {"avg_score": 0, "ranking_stability": 0, "ranking_trend": "波动"}
 
-        # 取最近5次考试记录
-        recent = records[:5]
-        scores = [float(r.score) for r in recent]
-        rankings = [r.ranking for r in recent if r.ranking]
+        # 按 exam_name 分组，每门考试只取一条记录
+        exam_data = {}
+        for r in records:
+            if r.exam_name not in exam_data:
+                # 使用总分排名而不是单科排名
+                ranking = r.total_ranking if r.total_ranking else r.ranking
+                exam_data[r.exam_name] = {
+                    "score": float(r.score),
+                    "total_score": r.total_score,
+                    "ranking": ranking
+                }
+
+        # 取最近5次考试
+        recent_exams = list(exam_data.items())[:5]
+        # items() returns tuples of (exam_name, data_dict), need to unpack
+        scores = [exam[1]["score"] for exam in recent_exams]
+        rankings = [exam[1]["ranking"] for exam in recent_exams if exam[1]["ranking"]]
 
         # 平均分
         avg_score = statistics.mean(scores) if scores else 0
@@ -191,15 +206,64 @@ class PredictionService:
             elif first_rank > last_rank:
                 ranking_trend = "下降"
             else:
-                ranking_trend = "波动"
+                ranking_trend = "不变"
         else:
-            ranking_trend = "波动"
+            ranking_trend = "不变"
 
         return {
             "avg_score": avg_score,
             "ranking_stability": ranking_stability,
             "ranking_trend": ranking_trend
         }
+
+    def _calculate_predicted_ranking(
+        self,
+        current_ranking: int,
+        ranking_trend: str,
+        ranking_stability: float
+    ) -> int:
+        """基于排名趋势和稳定性计算预测排名
+
+        逻辑：
+        - 上升趋势：排名数字应该变小（进步）
+        - 下降趋势：排名数字应该变大（退步）
+        - 波动：保持或轻微恶化
+        - 不稳定性越高，调整幅度越大
+        """
+        if current_ranking <= 0:
+            return current_ranking
+
+        # 基础调整比例（根据趋势）
+        if ranking_trend == "上升":
+            # 进步：排名数字变小，幅度取决于稳定性
+            # 不稳定（波动大）说明进步不稳定，调整幅度小
+            if ranking_stability > 20:
+                change_ratio = 0.05  # 不稳定，保守调整5%
+            elif ranking_stability > 10:
+                change_ratio = 0.10  # 中等，调整10%
+            else:
+                change_ratio = 0.15  # 稳定，调整15%
+            predicted = int(current_ranking * (1 - change_ratio))
+        elif ranking_trend == "下降":
+            # 退步：排名数字变大
+            if ranking_stability > 20:
+                change_ratio = 0.05
+            elif ranking_stability > 10:
+                change_ratio = 0.10
+            else:
+                change_ratio = 0.15
+            predicted = int(current_ranking * (1 + change_ratio))
+        else:  # 波动
+            # 波动时不做大调整，保持或轻微恶化
+            if ranking_stability > 20:
+                predicted = int(current_ranking * 1.10)  # 不稳定倾向于恶化
+            elif ranking_stability > 10:
+                predicted = current_ranking
+            else:
+                predicted = int(current_ranking * 1.03)  # 轻微恶化
+
+        # 确保预测排名在合理范围
+        return max(1, predicted)
 
     def _calculate_admission_probability(
         self,
@@ -211,36 +275,58 @@ class PredictionService:
         target_score: float
     ) -> int:
         """计算录取概率
+
         核心逻辑：
-        1. 先看分数差：学生分数超出学校分数线越多，概率越高
-        2. 再看排名差：排名差距作为调整因子
+        1. 分数差：差越多，概率越低（冲刺学校主要看这个）
+        2. 排名优势：学生排名远好于录取排名，概率应该更高
+        3. 稳定性：排名稳定的学生概率更高
+        4. 招生人数：招生多的学校概率略高
         """
 
-        # 1. 分数差计算
+        # 1. 分数差计算（细化）
         score_gap = student_score - target_score
         if score_gap > 30:
-            score_factor = 35  # 超出30+分 → 保底基础
+            score_factor = 35  # 超出30+分 → 保底
         elif score_gap > 0:
             score_factor = 20  # 略超出 → 稳定
-        elif score_gap > -30:
-            score_factor = 0  # 略低于 → 稳定
+        elif score_gap > -50:
+            score_factor = 10  # 差0-50分
+        elif score_gap > -100:
+            score_factor = 0   # 差50-100分
+        elif score_gap > -150:
+            score_factor = -10 # 差100-150分
         else:
-            score_factor = -30  # 低于30+分 → 冲刺
+            score_factor = -20 # 差150+分 → 冲刺但希望不大
 
-        # 2. 排名差距调整
-        rank_gap = student_predicted_rank - admission_rank
-        if rank_gap > 3000:
-            rank_factor = -20
-        elif rank_gap > 1000:
-            rank_factor = -10
-        elif rank_gap > 300:
-            rank_factor = 0
-        elif rank_gap > -500:
-            rank_factor = 5
-        elif rank_gap > -2000:
-            rank_factor = 10
+        # 2. 排名优势计算
+        # 学生排名远好于录取排名时（负数表示学生排名更靠前），加分
+        # 但对于冲刺学校（分数差<-150），排名优势不应大幅提升概率
+        rank_gap = student_predicted_rank - admission_rank  # 负数 = 学生排名更靠前
+
+        # 计算基础排名因子
+        if rank_gap < -5000:
+            base_rank_factor = 20
+        elif rank_gap < -2000:
+            base_rank_factor = 15
+        elif rank_gap < -500:
+            base_rank_factor = 10
+        elif rank_gap < 0:
+            base_rank_factor = 5
+        elif rank_gap < 500:
+            base_rank_factor = 0
+        elif rank_gap < 2000:
+            base_rank_factor = -5
+        elif rank_gap < 5000:
+            base_rank_factor = -10
         else:
-            rank_factor = 15
+            base_rank_factor = -15
+
+        # 冲刺学校（分数差<-150）不应因为排名优势而提升概率
+        if score_gap < -150:
+            # 冲刺学校：排名优势的影响减半
+            rank_factor = base_rank_factor // 2
+        else:
+            rank_factor = base_rank_factor
 
         # 3. 稳定性调整
         if ranking_stability > 20:

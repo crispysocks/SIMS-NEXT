@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -31,9 +32,19 @@ def get_student_avg_score(student_id: int, db: Session = Depends(get_db)):
 @router.get("/{student_id}", response_model=StudentPrediction)
 def get_student_prediction(
     student_id: int,
-    current_score: float = Query(..., description="学生当前分数"),
+    current_score: Optional[float] = Query(default=None, description="学生当前分数，不传则自动从最近考试计算"),
     db: Session = Depends(get_db)
 ):
+    # 如果没有传入分数，自动从exam_records计算
+    if current_score is None:
+        exam_repo = ExamRecordRepository(db)
+        latest_records = exam_repo.get_latest_by_student(student_id)
+        if not latest_records:
+            raise HTTPException(status_code=404, detail="无考试成绩数据")
+        latest_exam_name = latest_records[0].exam_name
+        latest_exam_records = [r for r in latest_records if r.exam_name == latest_exam_name]
+        current_score = sum(float(r.score) for r in latest_exam_records)
+
     prediction_service = PredictionService(db)
     return prediction_service.predict_student_admission(student_id, current_score)
 

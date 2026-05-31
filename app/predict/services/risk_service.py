@@ -23,18 +23,27 @@ class RiskService:
             subject_trends[r.subject].append(float(r.score))
 
         risk_tags = []
+        high_volatility_count = 0
+
         for subject, scores in subject_trends.items():
             if len(scores) >= 3:
                 trend = scores[-1] - scores[0]
                 if trend < -10:
                     risk_tags.append(f"{subject}下滑")
-                elif self._is_volatile(scores[-5:]):
-                    risk_tags.append(f"{subject}波动")
 
-        # Calculate overall risk level
-        if len(risk_tags) >= 3:
+                # Check volatility - only high volatility (variance > 30) counts as risk
+                if len(scores) >= 5:
+                    variance = max(scores[-5:]) - min(scores[-5:])
+                    if variance > 30:
+                        risk_tags.append(f"{subject}波动大")
+                        high_volatility_count += 1
+
+        # Calculate overall risk level - reduced volatility weight
+        # Only high volatility (variance > 30) and subject decline count as real risks
+        risk_count = len(risk_tags)
+        if risk_count >= 3:
             risk_level = "高"
-        elif len(risk_tags) >= 1:
+        elif risk_count >= 1 or high_volatility_count >= 2:
             risk_level = "中"
         else:
             risk_level = "低"

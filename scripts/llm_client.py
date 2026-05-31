@@ -10,13 +10,12 @@ import json
 import os
 
 # 常量定义
-DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+DEFAULT_MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
 MAX_RETRIES = 2
 
-# OpenAI 客户端初始化
 client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY"),
-    base_url=os.getenv("OPENAI_API_BASE_URL") or None
+    api_key=os.getenv("LLM_API_KEY"),
+    base_url=os.getenv("LLM_BASE_URL", "https://api.deepseek.com/v1")
 )
 
 

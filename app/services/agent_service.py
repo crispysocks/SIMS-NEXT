@@ -1,9 +1,9 @@
-import os
 import json
 import logging
 from typing import Iterator
 from openai import OpenAI
 from app.services.rag_service import RAGService
+from app.core.config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -63,8 +63,8 @@ class AgentService:
     def __init__(self, api_key: str = None, base_url: str = None):
         self.rag = RAGService()
         self.client = OpenAI(
-            api_key=api_key or os.getenv("OPENAI_API_KEY"),
-            base_url=base_url or os.getenv("OPENAI_API_BASE_URL") or "https://api.openai.com/v1"
+            api_key=api_key or LLM_API_KEY,
+            base_url=base_url or LLM_BASE_URL
         )
 
     def _call_tool(self, name: str, arguments: dict) -> str:
@@ -82,7 +82,7 @@ class AgentService:
 
     def chat_stream(self, question: str, model: str = None) -> Iterator[str]:
         """流式问答，参考 code.py 的 agent loop"""
-        model = model or os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        model = model or LLM_MODEL
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": question}

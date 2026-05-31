@@ -28,8 +28,8 @@ class PageIndexClient:
     def __init__(self, api_key: str = None, model: str = None, retrieve_model: str = None, workspace: str = None):
         if api_key:
             os.environ["OPENAI_API_KEY"] = api_key
-        elif not os.getenv("OPENAI_API_KEY") and os.getenv("CHATGPT_API_KEY"):
-            os.environ["OPENAI_API_KEY"] = os.getenv("CHATGPT_API_KEY")
+        elif not os.getenv("OPENAI_API_KEY"):
+            os.environ["OPENAI_API_KEY"] = os.getenv("LLM_API_KEY", "")
         self.workspace = Path(workspace).expanduser() if workspace else None
         overrides = {}
         if model:

@@ -1,6 +1,6 @@
 # SIMS-NEXT
 
-K12 学生信息管理系统 + AI 教学分析 + 四大名著智能助手。
+K12 学生信息管理系统 + AI 教学分析 + AI 智能辅导 + 四大名著智能助手。
 
 ## 项目组成
 
@@ -8,11 +8,12 @@ K12 学生信息管理系统 + AI 教学分析 + 四大名著智能助手。
 |------|------|
 | **SIMS 教务管理** | 学生/教师/班级/成绩 CRUD，JWT 认证 |
 | **AI 教学分析 Agent** | 学情诊断、知识点薄弱点定位、分层教学建议 |
+| **AI 智能辅导** | 基于贝叶斯掌握度追踪的自适应辅导系统，支持数学和英语双学科 |
 | **四大名著助手** | 基于 PageIndex + Milvus 的 RAG 问答 + 西游记取经文字游戏 |
 
 ## 技术栈
 
-**后端:** FastAPI · SQLAlchemy · MySQL · OpenAI SDK · PageIndex · Milvus · PyJWT
+**后端:** FastAPI · SQLAlchemy · MySQL · OpenAI SDK · PageIndex · Milvus · PyJWT · SymPy · scikit-learn
 
 **前端:** React 18 · Vite · TypeScript · Tailwind CSS 4 · Shadcn/ui · Zustand
 
@@ -56,13 +57,18 @@ SIMS-NEXT/
 │   │   ├── teacher.py       # 教师
 │   │   ├── class_router.py  # 班级
 │   │   ├── score_router.py  # 成绩
-│   │   └── novels.py        # 四大名著助手
+│   │   ├── novels.py        # 四大名著助手
+│   │   └── tutor_router.py  # AI 辅导
 │   ├── agent/               # AI 教学分析 Agent 子系统
 │   │   ├── api/v1/          # Agent API
 │   │   ├── core/            # Agent loop, LLM client, prompts
 │   │   ├── models/          # 知识点/考试/分析数据模型
 │   │   ├── services/        # 分析引擎（趋势/分层/薄弱点等）
 │   │   └── tools/           # Agent 工具定义
+│   ├── tutor/               # AI 智能辅导引擎
+│   │   ├── core/            # 核心抽象层（掌握度、推荐、会话）
+│   │   ├── subjects/        # 学科实现（math、english）
+│   │   └── rag/             # RAG 检索增强生成管道
 │   ├── core/
 │   │   ├── config.py        # 全局配置（环境变量驱动）
 │   │   ├── database.py      # 数据库连接池
@@ -76,14 +82,16 @@ SIMS-NEXT/
 │   ├── services/            # 业务逻辑层
 │   │   ├── novels_unified.py  # 四大名著统一 Agent
 │   │   ├── journey_engine.py  # 西游记游戏状态机
-│   │   └── rag_service.py     # PageIndex 检索封装
+│   │   ├── rag_service.py     # PageIndex 检索封装
+│   │   └── tutor_service.py   # AI 辅导服务
 │   ├── config/
 │   │   └── journey_chapters.py  # 游戏关卡配置
 │   └── main.py              # 应用入口
 ├── frontend/src/
 │   ├── pages/               # 页面组件
 │   │   ├── NovelsChat.tsx   # 四大名著统一聊天页
-│   │   └── Chat.tsx         # AI 助教聊天页
+│   │   ├── Chat.tsx         # AI 助教聊天页
+│   │   └── Tutor.tsx        # AI 辅导页面
 │   ├── stores/              # Zustand 状态管理
 │   ├── components/ui/       # Shadcn/ui 组件
 │   └── lib/                 # API 封装 & 工具函数
@@ -128,32 +136,36 @@ SIMS-NEXT/
 | POST | /agent/report | 教学报告 |
 | GET | /agent/students | 班级学生列表 |
 
+### AI 智能辅导 `/api/v1/tutor`
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /tutor/question | 获取下一道推荐题目 |
+| POST | /tutor/answer | 提交答案，获取诊断与反馈 |
+| POST | /tutor/hint | 请求渐进式提示（最多 3 级） |
+| GET | /tutor/mastery | 获取所有知识点的掌握度状态 |
+| GET | /tutor/progress | 获取完整学习进度快照 |
+| POST | /tutor/reset | 重置所有掌握度和会话历史 |
+| GET | /tutor/subject | 获取当前学科及可选学科列表 |
+| POST | /tutor/subject | 切换学科（math / english） |
+
 ## 环境变量
 
 完整配置见 `.env.example`。
 
-### 数据库
-
-| 变量 | 默认值 |
-|------|--------|
-| DB_HOST | localhost |
-| DB_PORT | 3306 |
-| DB_USER / DB_PASSWORD | user / password |
-| DB_NAME | sims |
-
-### LLM
-
-| 变量 | 默认值 |
-|------|--------|
-| LLM_BASE_URL | https://api.deepseek.com/v1 |
-| LLM_API_KEY | — |
-| LLM_MODEL | deepseek-chat |
-
-### 检索
-
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| MILVUS_HOST | localhost | Milvus 向量数据库 |
-| MILVUS_PORT | 19530 | |
-| MILVUS_COLLECTION | xiyouji | 集合名称 |
+| DB_HOST / DB_PORT | localhost / 3306 | 数据库连接 |
+| DB_USER / DB_PASSWORD | root / — | 数据库凭据 |
+| DB_NAME | sims | 数据库名称 |
+| JWT_SECRET_KEY | — | JWT 签名密钥 |
+| LLM_BASE_URL | https://api.deepseek.com/v1 | LLM API 地址 |
+| LLM_API_KEY | — | API 密钥 |
+| LLM_MODEL | deepseek-chat | 模型名称 |
+| MILVUS_HOST / PORT | localhost / 19530 | Milvus 向量数据库 |
 | EMBED_MODEL | text-embedding-3-small | Embedding 模型 |
+| RAG_ENABLED | false | AI 辅导 RAG 管道开关 |
+
+## 许可证
+
+MIT License

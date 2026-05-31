@@ -43,7 +43,7 @@ def parse_chapters(text: str) -> list[dict]:
                 'node_id': f"{node_counter:04d}",
                 'title': f"{match.group(1)} {match.group(2)}",
                 'line_num': line_num,
-                'text': '\n'.join(content_lines[:100]),  # 限制长度
+                'text': '\n'.join(content_lines),  # 保留完整章节内容
                 'nodes': []
             })
             node_counter += 1

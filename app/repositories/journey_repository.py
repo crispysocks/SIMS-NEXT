@@ -42,7 +42,7 @@ class JourneyRepository:
     def create_journey(self, session_id: str, achievements: list[dict]) -> JourneyState:
         journey = JourneyState(
             session_id=session_id,
-            companions=["Tang Monk", "Sun Wukong", "Zhu Bajie", "Sha Wujing"],
+            companions=["唐僧", "孙悟空", "猪八戒", "沙僧"],
             achievements=achievements,
             knowledge_cards=[],
             cleared_chapters=[],

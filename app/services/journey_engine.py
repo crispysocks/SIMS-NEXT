@@ -10,12 +10,12 @@ from app.config.journey_chapters import get_chapter, get_first_chapter, get_chap
 logger = logging.getLogger(__name__)
 
 ACHIEVEMENTS = [
-    {"id": "first_step", "name": "First Step", "description": "Complete chapter 1"},
-    {"id": "monster_hunter", "name": "Monster Hunter", "description": "First monster defeated"},
-    {"id": "scholar", "name": "Journey Scholar", "description": "Collect 5 knowledge cards"},
-    {"id": "wise_master", "name": "Wise Master", "description": "3 correct choices in a row"},
-    {"id": "compassionate", "name": "Compassionate", "description": "Karma reaches 50"},
-    {"id": "journey_complete", "name": "Journey Complete", "description": "All chapters cleared"},
+    {"id": "first_step", "name": "初踏取经路", "description": "完成第一章"},
+    {"id": "monster_hunter", "name": "降妖初成", "description": "首次成功降服妖怪"},
+    {"id": "scholar", "name": "西游学者", "description": "累计解锁5张知识卡片"},
+    {"id": "wise_master", "name": "智者大师", "description": "连续3次选择正确"},
+    {"id": "compassionate", "name": "慈悲为怀", "description": "功德值达到50"},
+    {"id": "journey_complete", "name": "取经圆满", "description": "完成所有章节"},
 ]
 
 

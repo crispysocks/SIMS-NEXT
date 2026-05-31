@@ -168,5 +168,51 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
     INDEX idx_last_active (last_active_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Xiyouji Conversation History
+CREATE TABLE IF NOT EXISTS xiyouji_conversation (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    session_id VARCHAR(64) NOT NULL,
+    role VARCHAR(16) NOT NULL,
+    content TEXT NOT NULL,
+    personality VARCHAR(64),
+    emotion VARCHAR(64),
+    tone VARCHAR(64),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_xiyouji_conv_session (session_id),
+    INDEX idx_xiyouji_conv_session_created (session_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Xiyouji Journey Game State
+CREATE TABLE IF NOT EXISTS xiyouji_journey (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    session_id VARCHAR(64) NOT NULL,
+    user_role VARCHAR(64) DEFAULT '五徒弟',
+    current_stage VARCHAR(32),
+    progress INT DEFAULT 0,
+    karma INT DEFAULT 0,
+    companions JSON,
+    chapter INT DEFAULT 1,
+    level_id INT DEFAULT 1,
+    stage_data JSON,
+    knowledge_cards JSON,
+    achievements JSON,
+    cleared_chapters JSON,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_xiyouji_journey_session (session_id),
+    INDEX idx_xiyouji_journey_session_active (session_id, is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Xiyouji Persona Corpus (Milvus data mirror for debugging)
+CREATE TABLE IF NOT EXISTS xiyouji_persona (
+    id VARCHAR(64) PRIMARY KEY,
+    chapter INT NOT NULL,
+    speaker VARCHAR(64),
+    embedding_text VARCHAR(4096),
+    meta_json TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- 导入种子数据
 SOURCE scripts/seed_data.sql;

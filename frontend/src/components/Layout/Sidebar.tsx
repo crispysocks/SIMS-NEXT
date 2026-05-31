@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 
 const menuItems = [
-  { path: '/agent', label: 'AI 助教', icon: MessageSquare },
   { path: '/students', label: '学生管理', icon: GraduationCap },
   { path: '/teachers', label: '教师管理', icon: Users },
   { path: '/classes', label: '班级管理', icon: BookOpen },

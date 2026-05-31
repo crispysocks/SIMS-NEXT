@@ -134,7 +134,7 @@ class AgentService:
                 func_args = json.loads(tc["function"]["arguments"]) if tc["function"]["arguments"] else {}
                 logger.info(f"[Agent] 调用工具 {func_name}, 参数: {func_args}")
                 result = self._call_tool(func_name, func_args)
-                logger.info(f"[Agent] 工具 {func_name} 返回结果长度: {len(result)}")
+                logger.info(f"[Agent] 工具 {func_name} 返回内容:\n{result[:500]}...")  # 只打印前500字符
                 tool_results.append({
                     "tool_call_id": tc["id"],
                     "result": result

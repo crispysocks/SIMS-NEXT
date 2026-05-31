@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
+import { api } from '@/lib/api'
+import { useAuthStore } from '@/stores/authStore'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -10,6 +12,7 @@ export function ChatInterface() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const token = useAuthStore(state => state.token)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -29,19 +32,14 @@ export function ChatInterface() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/v1/agent/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question })
-      })
-
-      const reader = response.body?.getReader()
+      const stream = await api.postStream('/agent/chat', { question }, token || undefined)
+      const reader = stream.getReader()
       const decoder = new TextDecoder()
       let assistantMessage = ''
 
       setMessages(prev => [...prev, { role: 'assistant', content: '' }])
 
-      while (reader) {
+      while (true) {
         const { done, value } = await reader.read()
         if (done) break
 

@@ -166,6 +166,9 @@ class PageIndexClient:
             doc = dict(entry, id=doc_id)
             if doc.get('path') and not os.path.isabs(doc['path']):
                 doc['path'] = str((self.workspace / doc['path']).resolve())
+            # 从 path 中提取实际文件名（如 西游记_index.json）
+            if doc.get('path'):
+                doc['_filename'] = os.path.basename(doc['path'])
             self.documents[doc_id] = doc
 
     def _ensure_doc_loaded(self, doc_id: str):
@@ -173,7 +176,10 @@ class PageIndexClient:
         doc = self.documents.get(doc_id)
         if not doc or doc.get('structure') is not None:
             return
-        full = self._read_json(self.workspace / f"{doc_id}.json")
+        filename = doc.get('_filename') or f"{doc_id}.json"
+        filepath = self.workspace / filename
+        print(f"[PageIndex] Loading doc {doc_id} from {filepath}")
+        full = self._read_json(filepath)
         if not full:
             return
         doc['structure'] = full.get('structure', [])

@@ -10,6 +10,7 @@ class Student(Base):
     name = Column(String(50), nullable=False)
     gender = Column(String(10), nullable=False)
     age = Column(Integer, nullable=False)
+    region = Column(String(50), nullable=True, default="城区")
     native_place = Column(String(100), nullable=True)
     class_id = Column(Integer, nullable=True, index=True)
     enrollment_date = Column(Date, nullable=False)

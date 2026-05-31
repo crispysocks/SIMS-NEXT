@@ -4,7 +4,7 @@ from app.core.database import Base
 
 
 class JourneyConversation(Base):
-    __tablename__ = "xiyouji_conversation"
+    __tablename__ = "journey_conversation"
     __table_args__ = (
         Index("idx_jconv_session_created", "session_id", "created_at"),
         {"schema": "sims", "extend_existing": True},
@@ -21,7 +21,7 @@ class JourneyConversation(Base):
 
 
 class JourneyState(Base):
-    __tablename__ = "xiyouji_journey"
+    __tablename__ = "journey_state"
     __table_args__ = (
         Index("idx_jstate_session_active", "session_id", "is_active"),
         {"schema": "sims", "extend_existing": True},
@@ -46,7 +46,7 @@ class JourneyState(Base):
 
 
 class JourneyPersona(Base):
-    __tablename__ = "xiyouji_persona"
+    __tablename__ = "journey_persona"
     __table_args__ = {"schema": "sims"}
 
     id = Column(String(64), primary_key=True)

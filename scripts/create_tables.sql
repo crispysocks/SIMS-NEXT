@@ -168,8 +168,8 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
     INDEX idx_last_active (last_active_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Xiyouji Conversation History
-CREATE TABLE IF NOT EXISTS xiyouji_conversation (
+-- Journey Conversation History
+CREATE TABLE IF NOT EXISTS journey_conversation (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     session_id VARCHAR(64) NOT NULL,
     role VARCHAR(16) NOT NULL,
@@ -178,12 +178,12 @@ CREATE TABLE IF NOT EXISTS xiyouji_conversation (
     emotion VARCHAR(64),
     tone VARCHAR(64),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_xiyouji_conv_session (session_id),
-    INDEX idx_xiyouji_conv_session_created (session_id, created_at)
+    INDEX idx_journey_conv_session (session_id),
+    INDEX idx_journey_conv_session_created (session_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Xiyouji Journey Game State
-CREATE TABLE IF NOT EXISTS xiyouji_journey (
+-- Journey Game State
+CREATE TABLE IF NOT EXISTS journey_state (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     session_id VARCHAR(64) NOT NULL,
     user_role VARCHAR(64) DEFAULT '五徒弟',
@@ -200,12 +200,12 @@ CREATE TABLE IF NOT EXISTS xiyouji_journey (
     is_active TINYINT(1) DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_xiyouji_journey_session (session_id),
-    INDEX idx_xiyouji_journey_session_active (session_id, is_active)
+    INDEX idx_journey_state_session (session_id),
+    INDEX idx_journey_state_session_active (session_id, is_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Xiyouji Persona Corpus (Milvus data mirror for debugging)
-CREATE TABLE IF NOT EXISTS xiyouji_persona (
+-- Journey Persona Corpus (Milvus data mirror for debugging)
+CREATE TABLE IF NOT EXISTS journey_persona (
     id VARCHAR(64) PRIMARY KEY,
     chapter INT NOT NULL,
     speaker VARCHAR(64),

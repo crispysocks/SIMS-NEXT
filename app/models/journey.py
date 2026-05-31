@@ -29,7 +29,7 @@ class JourneyState(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     session_id = Column(String(64), index=True)
-    user_role = Column(String(64), default="五徒弟")
+    user_role = Column(String(64), default="disciple")
     current_stage = Column(String(32))
     progress = Column(Integer, default=0)
     karma = Column(Integer, default=0)

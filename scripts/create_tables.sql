@@ -186,7 +186,7 @@ CREATE TABLE IF NOT EXISTS journey_conversation (
 CREATE TABLE IF NOT EXISTS journey_state (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     session_id VARCHAR(64) NOT NULL,
-    user_role VARCHAR(64) DEFAULT '五徒弟',
+    user_role VARCHAR(64) DEFAULT 'disciple',
     current_stage VARCHAR(32),
     progress INT DEFAULT 0,
     karma INT DEFAULT 0,

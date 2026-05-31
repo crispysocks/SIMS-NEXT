@@ -14,6 +14,7 @@ from app.schemas.tutor import (
     ProgressOut,
     QuestionOut,
     RemediationPlanOut,
+    TopicInfo,
     TutorResponseOut,
     TutoringExplanationOut,
 )
@@ -205,3 +206,15 @@ def switch_subject(
         subject=service.subject,
         available_subjects=["math", "english"],
     )
+
+
+@router.get("/topics", response_model=TopicInfo)
+def get_topics(
+    service: TutorService = Depends(get_tutor_service),
+) -> TopicInfo:
+    """Return topic names and difficulty labels for the current subject."""
+    if service.subject == "english":
+        from app.tutor.subjects.english.knowledge import TOPIC_NAMES, DIFFICULTY_LABELS
+    else:
+        from app.tutor.subjects.math.knowledge import TOPIC_NAMES, DIFFICULTY_LABELS
+    return TopicInfo(topic_names=TOPIC_NAMES, difficulty_labels=DIFFICULTY_LABELS)

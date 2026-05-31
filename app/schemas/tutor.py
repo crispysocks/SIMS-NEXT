@@ -108,3 +108,9 @@ class ProgressOut(BaseModel):
     accuracy: float
     correct_streak: int
     wrong_streak: int
+
+
+class TopicInfo(BaseModel):
+    """Topic names and difficulty labels for the current subject."""
+    topic_names: dict[str, str]
+    difficulty_labels: dict[str, str]

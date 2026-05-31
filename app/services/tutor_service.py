@@ -7,6 +7,14 @@ Supports both math and english subjects with optional RAG pipeline.
 """
 
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load .env before reading OPENAI_API_KEY
+_env_path = Path(__file__).parent.parent.parent / ".env"
+if _env_path.exists():
+    load_dotenv(_env_path, override=True)
 
 from app.tutor.core.mastery import MasteryStore
 from app.tutor.core.recommender import Recommender

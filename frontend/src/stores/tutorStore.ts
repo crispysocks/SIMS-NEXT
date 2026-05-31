@@ -92,12 +92,18 @@ export interface SubjectInfo {
   available_subjects: string[];
 }
 
+export interface TopicInfo {
+  topic_names: Record<string, string>;
+  difficulty_labels: Record<string, string>;
+}
+
 interface TutorState {
   currentQuestion: Question | null;
   answerResult: AnswerResult | null;
   hint: HintResponse | null;
   progress: Progress | null;
   subjectInfo: SubjectInfo | null;
+  topicInfo: TopicInfo | null;
   loading: boolean;
   submitting: boolean;
   error: string | null;
@@ -106,6 +112,7 @@ interface TutorState {
   requestHint: () => Promise<void>;
   fetchProgress: () => Promise<void>;
   fetchSubject: () => Promise<void>;
+  fetchTopics: () => Promise<void>;
   switchSubject: (subject: string) => Promise<void>;
   resetSession: () => Promise<void>;
   clearResult: () => void;
@@ -117,6 +124,7 @@ export const useTutorStore = create<TutorState>((set, get) => ({
   hint: null,
   progress: null,
   subjectInfo: null,
+  topicInfo: null,
   loading: false,
   submitting: false,
   error: null,
@@ -131,6 +139,16 @@ export const useTutorStore = create<TutorState>((set, get) => ({
     }
   },
 
+  fetchTopics: async () => {
+    try {
+      const token = useAuthStore.getState().token;
+      const data = await api.get<TopicInfo>('/tutor/topics', token);
+      set({ topicInfo: data });
+    } catch (err) {
+      console.error('获取主题信息失败:', err);
+    }
+  },
+
   switchSubject: async (subject: string) => {
     try {
       const token = useAuthStore.getState().token;
@@ -142,7 +160,7 @@ export const useTutorStore = create<TutorState>((set, get) => ({
         hint: null,
         progress: null,
       });
-      // 重新获取题目和进度
+      get().fetchTopics();
       get().fetchQuestion();
       get().fetchProgress();
     } catch (err) {
@@ -173,7 +191,13 @@ export const useTutorStore = create<TutorState>((set, get) => ({
       // 自动刷新进度
       get().fetchProgress();
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : '提交答案失败', submitting: false });
+      const msg = err instanceof Error ? err.message : '提交答案失败';
+      if (msg.includes('No active question')) {
+        set({ currentQuestion: null, answerResult: null, submitting: false });
+        get().fetchQuestion();
+      } else {
+        set({ error: msg, submitting: false });
+      }
     }
   },
 
@@ -186,7 +210,14 @@ export const useTutorStore = create<TutorState>((set, get) => ({
       const data = await api.post<HintResponse>('/tutor/hint', {}, token);
       set({ hint: data });
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : '获取提示失败' });
+      const msg = err instanceof Error ? err.message : '获取提示失败';
+      // 后端 session 可能已重置（reload/重启），自动重新获取题目
+      if (msg.includes('No active question')) {
+        set({ currentQuestion: null, hint: null, answerResult: null });
+        get().fetchQuestion();
+      } else {
+        set({ error: msg });
+      }
     }
   },
 

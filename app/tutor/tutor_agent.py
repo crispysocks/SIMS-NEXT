@@ -12,8 +12,8 @@ import json
 import os
 import urllib.request
 
-# Load .env from project root (two levels up from app/)
-_env_path = Path(__file__).parent.parent / ".env"
+# Load .env from project root (three levels up from app/tutor/)
+_env_path = Path(__file__).parent.parent.parent / ".env"
 if _env_path.exists():
     try:
         from dotenv import load_dotenv

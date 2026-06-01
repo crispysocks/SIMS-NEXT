@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useJourneyStore } from '@/stores/journeyStore';
 import type { ChoiceItem, KnowledgeCard, Achievement } from '@/stores/journeyStore';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore } from '@/shared/stores/auth-store';
 import { api } from '@/lib/api';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';

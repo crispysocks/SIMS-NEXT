@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { api } from '@/lib/api';
-import { useAuthStore } from './authStore';
+import { useAuthStore } from '@/shared/stores/auth-store';
 
 export interface Score {
   id: number;

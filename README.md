@@ -32,11 +32,11 @@ K12 学生信息管理系统 + AI 教学分析 + 四大名著智能助手。
 cp .env.example .env
 
 # 2. 初始化数据库
-mysql -u root -p -e "source scripts/create_tables.sql"
+mysql -u root -p --default-character-set=utf8mb4 -e "source scripts/create_tables.sql"
 
 # 3. 启动后端
 uv sync
-uv run uvicorn app.main:app --reload --port 8000
+uv run uvicorn app.main:app --reload
 
 # 4. 启动前端（另开终端）
 cd frontend && npm install && npm run dev

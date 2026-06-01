@@ -1,7 +1,9 @@
 -- Student Information Management System Database Setup
 -- This script creates the students table
 
-CREATE DATABASE IF NOT EXISTS sims;
+SET NAMES utf8mb4;
+DROP DATABASE IF EXISTS sims;
+CREATE DATABASE sims CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE sims;
 
 CREATE TABLE IF NOT EXISTS students (
@@ -10,6 +12,7 @@ CREATE TABLE IF NOT EXISTS students (
     name VARCHAR(50) NOT NULL,
     gender VARCHAR(10) NOT NULL,
     age INT NOT NULL,
+    region VARCHAR(50),
     native_place VARCHAR(100),
     class_id INT,
     enrollment_date DATE NOT NULL,
@@ -143,6 +146,13 @@ CREATE TABLE IF NOT EXISTS exam_records (
 CREATE TABLE IF NOT EXISTS student_portraits (
     id INT AUTO_INCREMENT PRIMARY KEY,
     student_id INT NOT NULL UNIQUE,
+    learning_type VARCHAR(20) COMMENT '稳定型, 波动型, 退步型',
+    science_ability VARCHAR(10) COMMENT '理科能力等级',
+    english_ability VARCHAR(10) COMMENT '英语能力等级',
+    improvement_potential VARCHAR(10) COMMENT '提升潜力等级',
+    current_tier VARCHAR(20),
+    target_tier VARCHAR(20),
+    risk_tags TEXT COMMENT 'JSON - 风险标签',
     overall_score FLOAT NOT NULL DEFAULT 0.0,
     subject_strengths TEXT COMMENT 'JSON - 优势学科',
     subject_weaknesses TEXT COMMENT 'JSON - 弱势学科',
@@ -158,7 +168,7 @@ CREATE TABLE IF NOT EXISTS student_portraits (
 CREATE TABLE IF NOT EXISTS chat_sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     student_id INT NOT NULL,
-    messages TEXT NOT NULL DEFAULT '[]',
+    messages TEXT NOT NULL,
     message_count INT DEFAULT 0,
     last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     is_deleted BOOLEAN DEFAULT FALSE,
@@ -215,4 +225,6 @@ CREATE TABLE IF NOT EXISTS journey_persona (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 导入种子数据
+SET FOREIGN_KEY_CHECKS=0;
 SOURCE scripts/seed_data.sql;
+SET FOREIGN_KEY_CHECKS=1;

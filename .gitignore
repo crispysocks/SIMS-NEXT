@@ -241,3 +241,6 @@ frontend/dist/
 
 # Claude Code 本地配置
 .claude/
+
+# Superpowers 浏览器视觉伴侣
+.superpowers/

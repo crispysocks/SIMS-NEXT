@@ -3,7 +3,7 @@ import time
 from typing import Optional, Generator
 import httpx
 from sqlalchemy.orm import Session
-from app.core.config import LLM_API_KEY, LLM_MODEL
+from app.core.config import LLM_API_KEY, LLM_MODEL, LLM_BASE_URL
 from app.predict.services.prediction_service import PredictionService
 from app.predict.services.portrait_service import PortraitService
 from app.predict.services.risk_service import RiskService
@@ -389,8 +389,8 @@ class ChatService:
 
         with httpx.Client(timeout=30.0) as client:
             response = client.post(
-                "https://api.minimax.chat/v1/chat/completions",
-                               headers={
+                f"{LLM_BASE_URL}/chat/completions",
+                headers={
                     "Authorization": f"Bearer {LLM_API_KEY}",
                     "Content-Type": "application/json",
                 },
@@ -451,10 +451,16 @@ class ChatService:
             response += f"   保底学校有{secure[0].school_name}（概率{secure[0].admission_probability}%）。\n"
 
         response += f"3. 提分建议："
-        if portrait.get("english_ability") == "弱":
+        weak_subjects = context.get("weak_subjects", {}).get("weak_subjects", [])
+        if weak_subjects:
+            ws = weak_subjects[0]
+            response += f"{ws['subject']}是你的薄弱科目(得分{ws['latest_score']})，建议每天针对性训练30分钟。"
+        elif portrait.get("english_ability") == "弱":
             response += "英语是你的弱项，建议加强阅读训练。"
         elif portrait.get("science_ability") == "强":
             response += "理科是你的强项，可以适当挑战难题。"
+        else:
+            response += "建议重点巩固薄弱科目，整理错题本并定期复习。"
 
         if risk.get("risk_level") == "高":
             response += f"\n风险提示：{risk.get('risk_tags', [])[0] if risk.get('risk_tags') else ''}，需要关注。"

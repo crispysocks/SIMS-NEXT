@@ -4,13 +4,7 @@ from app.agent.tools import TOOL_DEFINITIONS
 
 
 def build_system_prompt(class_id: int, class_name: str, tools: list[dict] | None = None) -> str:
-    """构建 System Prompt，注入当前班级上下文。
-
-    Args:
-        class_id: 绑定的班级 ID
-        class_name: 班级名称（如"初三(2)班"）
-        tools: Tool 定义列表（OpenAI Function Calling 格式），默认使用 TOOL_DEFINITIONS
-    """
+    """构建 System Prompt，注入当前班级上下文（含学生名单映射）。"""
     if tools is None:
         tools = TOOL_DEFINITIONS
 
@@ -18,6 +12,23 @@ def build_system_prompt(class_id: int, class_name: str, tools: list[dict] | None
         f"- **{t['function']['name']}**: {t['function']['description']}"
         for t in tools
     )
+
+    # 查询该班级的学生名单（学号 + 姓名）
+    student_list_str = ""
+    try:
+        from app.core.database import SessionLocal
+        from app.models.student import Student
+        db = SessionLocal()
+        students = db.query(Student).filter(
+            Student.class_id == class_id,
+            Student.is_deleted == False
+        ).all()
+        if students:
+            lines = [f"  - {s.name} (学号: {s.student_no})" for s in students]
+            student_list_str = "\n".join(lines)
+        db.close()
+    except Exception:
+        pass
 
     return f"""你是一个班级教学优化助教，服务于初中数学教师。
 
@@ -49,6 +60,9 @@ def build_system_prompt(class_id: int, class_name: str, tools: list[dict] | None
 ## 当前上下文
 - 绑定班级: {class_name} (class_id={class_id})
 - 所有 tool 调用自动限定在此班级范围内
+- 本班已有考试: 第一次月考(exam_type)、第二次月考(exam_type)、期中考试(exam_type)，调用 tool 时 exam_type 使用这些值
+- 本班学生名单（调用 get_student_trend 时使用 student_no）:
+{student_list_str}
 """
 
 

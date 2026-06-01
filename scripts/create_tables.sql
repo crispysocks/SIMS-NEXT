@@ -224,6 +224,152 @@ CREATE TABLE IF NOT EXISTS journey_persona (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ── Agent 模块表 ──────────────────────────────────────
+
+-- Agent 学科表
+CREATE TABLE IF NOT EXISTS agent_subjects (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    grade_level VARCHAR(20) NOT NULL COMMENT '初中/高中',
+    description VARCHAR(200)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Agent 知识点表（三级树：章→节→知识点）
+CREATE TABLE IF NOT EXISTS agent_knowledge_points (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    subject_id INT NOT NULL,
+    parent_id INT,
+    name VARCHAR(100) NOT NULL,
+    level INT NOT NULL COMMENT '1=章/2=节/3=知识点',
+    sort_order INT DEFAULT 0,
+    core_weight FLOAT DEFAULT 1.0 COMMENT '核心权重',
+    FOREIGN KEY (subject_id) REFERENCES agent_subjects(id),
+    FOREIGN KEY (parent_id) REFERENCES agent_knowledge_points(id),
+    INDEX idx_kp_subject (subject_id),
+    INDEX idx_kp_parent (parent_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Agent 知识点前置依赖关系
+CREATE TABLE IF NOT EXISTS agent_knowledge_dependencies (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    source_kp_id INT NOT NULL,
+    target_kp_id INT NOT NULL,
+    dependency_weight FLOAT DEFAULT 1.0 COMMENT '依赖强度0-1',
+    FOREIGN KEY (source_kp_id) REFERENCES agent_knowledge_points(id),
+    FOREIGN KEY (target_kp_id) REFERENCES agent_knowledge_points(id),
+    UNIQUE INDEX uq_kp_dependency (source_kp_id, target_kp_id),
+    INDEX idx_kpdep_source (source_kp_id),
+    INDEX idx_kpdep_target (target_kp_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Agent 考试表
+CREATE TABLE IF NOT EXISTS agent_exams (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    subject_id INT NOT NULL,
+    class_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    exam_date DATE NOT NULL,
+    total_score INT NOT NULL DEFAULT 100,
+    exam_type VARCHAR(30) NOT NULL DEFAULT '月考' COMMENT '月考/期中/期末/模拟',
+    semester VARCHAR(20) NOT NULL COMMENT '2025上/2025下',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_exam_subject (subject_id),
+    INDEX idx_exam_class (class_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Agent 题目表
+CREATE TABLE IF NOT EXISTS agent_questions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    exam_id INT NOT NULL,
+    title VARCHAR(200),
+    question_type VARCHAR(30) NOT NULL COMMENT '选择题/填空题/解答题/证明题',
+    difficulty FLOAT NOT NULL COMMENT '预设难度系数0-1',
+    max_score INT NOT NULL,
+    sort_order INT DEFAULT 0,
+    FOREIGN KEY (exam_id) REFERENCES agent_exams(id),
+    INDEX idx_q_exam (exam_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Agent 题目-知识点关联表
+CREATE TABLE IF NOT EXISTS agent_question_kps (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    question_id INT NOT NULL,
+    kp_id INT NOT NULL,
+    relevance FLOAT DEFAULT 1.0 COMMENT '考察权重0-1',
+    FOREIGN KEY (question_id) REFERENCES agent_questions(id),
+    FOREIGN KEY (kp_id) REFERENCES agent_knowledge_points(id),
+    UNIQUE INDEX uq_question_kp (question_id, kp_id),
+    INDEX idx_qkp_question (question_id),
+    INDEX idx_qkp_kp (kp_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Agent 成绩记录表
+CREATE TABLE IF NOT EXISTS agent_score_records (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_no VARCHAR(20) NOT NULL,
+    exam_id INT NOT NULL,
+    question_id INT NOT NULL,
+    score FLOAT NOT NULL,
+    max_score INT NOT NULL COMMENT '题目满分(冗余加速计算)',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (exam_id) REFERENCES agent_exams(id),
+    FOREIGN KEY (question_id) REFERENCES agent_questions(id),
+    INDEX idx_scr_student (student_no),
+    INDEX idx_scr_exam (exam_id),
+    INDEX idx_scr_question (question_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Agent 会话表
+CREATE TABLE IF NOT EXISTS agent_sessions (
+    id VARCHAR(36) PRIMARY KEY,
+    user_id INT NOT NULL,
+    class_id INT NOT NULL,
+    title VARCHAR(200) NOT NULL DEFAULT '新对话',
+    status VARCHAR(20) NOT NULL DEFAULT 'active',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_asess_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Agent 消息表
+CREATE TABLE IF NOT EXISTS agent_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    session_id VARCHAR(36) NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    content_json JSON NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES agent_sessions(id),
+    INDEX idx_amsg_session (session_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Agent Tool 调用记录表
+CREATE TABLE IF NOT EXISTS agent_tool_calls (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    message_id INT NOT NULL,
+    tool_name VARCHAR(50) NOT NULL,
+    params_json JSON NOT NULL,
+    summary VARCHAR(500),
+    data_id VARCHAR(36),
+    error VARCHAR(500),
+    duration_ms INT,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (message_id) REFERENCES agent_messages(id),
+    INDEX idx_atc_message (message_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Agent 分析数据缓存表
+CREATE TABLE IF NOT EXISTS agent_analysis_data (
+    id VARCHAR(36) PRIMARY KEY,
+    session_id VARCHAR(36) NOT NULL,
+    tool_name VARCHAR(50) NOT NULL,
+    cache_key VARCHAR(200) NOT NULL,
+    data_json JSON NOT NULL,
+    expires_at DATETIME NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (session_id) REFERENCES agent_sessions(id),
+    INDEX idx_aad_cache (cache_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- 导入种子数据
 SET FOREIGN_KEY_CHECKS=0;
 SOURCE scripts/seed_data.sql;

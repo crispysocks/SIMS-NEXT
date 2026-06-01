@@ -540,7 +540,16 @@ export function PredictionPage() {
 
 // Helper function to determine category based on score
 function getCategoryForScore(score: number): string {
-  // This is a simplified logic - in reality you would need to check the prediction results
+  if (!simulationResult?.predictions) return '待定';
+
+  const { predictions } = simulationResult;
+  const hasChase = predictions.冲刺 && predictions.冲刺.length > 0;
+  const hasStable = predictions.稳定 && predictions.稳定.length > 0;
+  const hasBackup = predictions.保底 && predictions.保底.length > 0;
+
+  if (hasChase) return '冲刺';
+  if (hasStable) return '稳定';
+  if (hasBackup) return '保底';
   return '待定';
 }
 

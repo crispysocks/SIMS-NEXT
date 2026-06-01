@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { predictionApi } from '@/shared/api/prediction';
-import type { PredictionItem, StudentPrediction } from '@/shared/api/prediction';
+import type { PredictionItem } from '@/shared/api/prediction';
 import { PageHeader } from '@/shared/components/page-header';
 import { SectionErrorBoundary } from '@/shared/components/error-boundary';
 import { ChartCard } from '@/shared/components/chart-card';

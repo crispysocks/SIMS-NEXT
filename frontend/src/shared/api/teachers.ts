@@ -58,5 +58,5 @@ export const teachersApi = {
   create: (data: TeacherCreate) => api.post<Teacher>('/teachers', data),
   update: (teacher_no: string, data: TeacherUpdate) =>
     api.put<Teacher>(`/teachers/${teacher_no}`, data),
-  remove: (teacher_no: string) => api.delete<void>(`/teachers/${teacher_no}`),
+  remove: (teacher_no: string) => api.delete(`/teachers/${teacher_no}`),
 };

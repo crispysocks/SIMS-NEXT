@@ -49,5 +49,5 @@ export const classesApi = {
   create: (data: ClassCreate) => api.post<Class>('/classes', data),
   update: (class_no: string, data: ClassUpdate) =>
     api.put<Class>(`/classes/${class_no}`, data),
-  remove: (class_no: string) => api.delete<void>(`/classes/${class_no}`),
+  remove: (class_no: string) => api.delete(`/classes/${class_no}`),
 };

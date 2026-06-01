@@ -48,5 +48,5 @@ export const scoresApi = {
   create: (data: ScoreCreate) => api.post<Score>('/scores', data),
   update: (id: number, data: ScoreUpdate) =>
     api.put<Score>(`/scores/${id}`, data),
-  remove: (id: number) => api.delete<void>(`/scores/${id}`),
+  remove: (id: number) => api.delete(`/scores/${id}`),
 };

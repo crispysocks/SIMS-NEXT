@@ -64,5 +64,5 @@ export const studentsApi = {
   create: (data: StudentCreate) => api.post<Student>('/students', data),
   update: (student_no: string, data: StudentUpdate) =>
     api.put<Student>(`/students/${student_no}`, data),
-  remove: (student_no: string) => api.delete<void>(`/students/${student_no}`),
+  remove: (student_no: string) => api.delete(`/students/${student_no}`),
 };

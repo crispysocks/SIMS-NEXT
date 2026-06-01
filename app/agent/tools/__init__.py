@@ -202,7 +202,8 @@ ALL_TOOLS = {**DATA_TOOLS, **ANALYSIS_TOOLS}
 
 
 async def execute_tool(
-    tool_name: str, args: dict, db, class_id: int
+    tool_name: str, args: dict, db, class_id: int,
+    session_id: str | None = None,
 ) -> dict:
     """执行单个 Tool 并返回 {summary, data_id, full_data, ok}。
 
@@ -216,6 +217,7 @@ async def execute_tool(
             "ok": False,
             "params": args,
             "duration_ms": 0,
+            "session_id": session_id,
         })
         return {"summary": f"未知工具: {tool_name}", "data_id": None, "ok": False}
 
@@ -230,12 +232,14 @@ async def execute_tool(
         "ok": True,
         "params": {k: v for k, v in args.items() if k != "class_id"},
         "duration_ms": int((time.time() - t0) * 1000),
+        "session_id": session_id,
     })
     return result
 
 
 async def execute_tools_parallel(
-    tool_calls: list[dict], db, class_id: int
+    tool_calls: list[dict], db, class_id: int,
+    session_id: str | None = None,
 ) -> list[dict]:
     """并行执行多个 Tool 调用。"""
     import asyncio
@@ -246,7 +250,7 @@ async def execute_tools_parallel(
         if isinstance(args, str):
             import json
             args = json.loads(args)
-        result = await execute_tool(fn["name"], args, db, class_id)
+        result = await execute_tool(fn["name"], args, db, class_id, session_id=session_id)
         result["tool_name"] = fn["name"]
         result["tool_call_id"] = tc.get("id")
         return result

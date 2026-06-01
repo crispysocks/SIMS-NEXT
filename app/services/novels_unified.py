@@ -253,6 +253,7 @@ class NovelsUnifiedService:
                 "messages": messages,
                 "tools": TOOLS,
                 "stream": True,
+                "session_id": session_id,
             })
 
             response = self.client.chat.completions.create(
@@ -297,6 +298,7 @@ class NovelsUnifiedService:
                 ],
                 "finish_reason": "tool_calls" if valid_tool_calls else "stop",
                 "latency_ms": int((time.time() - t0) * 1000),
+                "session_id": session_id,
             })
 
             if not valid_tool_calls:
@@ -315,6 +317,7 @@ class NovelsUnifiedService:
                     "type": "tool_call",
                     "tool": tc["function"]["name"],
                     "args": tc["function"]["arguments"],
+                    "session_id": session_id,
                 })
                 yield (
                     f"data: {json.dumps({'type': 'tool_call', 'tool': tc['function']['name'], 'args': tc['function']['arguments']}, ensure_ascii=False)}\n\n"
@@ -333,6 +336,7 @@ class NovelsUnifiedService:
                     "summary": result[:500],
                     "ok": True,
                     "duration_ms": int((time.time() - t_tool) * 1000),
+                    "session_id": session_id,
                 })
                 yield (
                     f"data: {json.dumps({'type': 'tool_result', 'tool': func_name, 'result': result[:500]}, ensure_ascii=False)}\n\n"
@@ -366,6 +370,7 @@ class NovelsUnifiedService:
                 "model": model,
                 "messages": messages,
                 "stream": True,
+                "session_id": session_id,
             })
 
             response = self.client.chat.completions.create(
@@ -387,6 +392,7 @@ class NovelsUnifiedService:
                 "content": "".join(final_content),
                 "finish_reason": "stop",
                 "latency_ms": int((time.time() - t0) * 1000),
+                "session_id": session_id,
             })
 
         # 保存本轮完整对话历史（去掉 system prompt），供下一轮继续使用

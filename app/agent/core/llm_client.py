@@ -31,6 +31,7 @@ async def chat_completion(
     tool_choice: str = "auto",
     stream: bool = False,
     model: str | None = None,
+    session_id: str | None = None,
 ) -> dict:
     """调用 LLM Chat Completion。
 
@@ -54,6 +55,7 @@ async def chat_completion(
         "tools": tools,
         "tool_choice": tool_choice,
         "stream": stream,
+        "session_id": session_id,
     })
 
     client = get_client()
@@ -82,6 +84,7 @@ async def chat_completion(
             "finish_reason": choice.get("finish_reason"),
             "usage": result.get("usage"),
             "latency_ms": int((time.time() - t0) * 1000),
+            "session_id": session_id,
         })
         return result
     except Exception as e:
@@ -90,20 +93,22 @@ async def chat_completion(
             "model": model_name,
             "error": str(e),
             "latency_ms": int((time.time() - t0) * 1000),
+            "session_id": session_id,
         })
         raise
 
 
-async def extract_tool_calls(messages: list[dict]) -> list[dict]:
+async def extract_tool_calls(messages: list[dict], session_id: str | None = None) -> list[dict]:
     """向 LLM 发送消息并提取 tool_calls。
 
     Args:
         messages: 完整对话上下文（含 System Prompt + 历史 + 用户消息）
+        session_id: 可选，用于日志分文件
 
     Returns:
         [{id, function: {name, arguments}}, ...]
     """
-    response = await chat_completion(messages, tools=TOOL_DEFINITIONS, tool_choice="auto")
+    response = await chat_completion(messages, tools=TOOL_DEFINITIONS, tool_choice="auto", session_id=session_id)
     choice = response["choices"][0]
     if choice["finish_reason"] == "tool_calls":
         return choice["message"].get("tool_calls", [])

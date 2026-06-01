@@ -16,7 +16,7 @@ K12 学生信息管理系统 + AI 教学分析 + 升学预测 + AI 智能辅导 
 
 **后端:** FastAPI · SQLAlchemy · MySQL · OpenAI SDK · PageIndex · Milvus · PyJWT · SymPy · scikit-learn · Anthropic SDK
 
-**前端:** React 18 · Vite · TypeScript · Tailwind CSS 4 · Shadcn/ui · Zustand
+**前端:** React 19 · Vite 8 · TypeScript 6 · Tailwind CSS 4 · Shadcn/ui · Zustand · React Query · Recharts · ECharts（懒加载）
 
 ## 快速开始
 
@@ -46,6 +46,16 @@ cd frontend && npm install && npm run dev
 
 前端 http://localhost:3000  
 API 文档 http://localhost:8000/docs
+
+### 前端架构
+
+- **双门户路由**：`/student/*`（学生门户）、`/teacher/*`（教师工作台），登录后按角色自动重定向
+- **设计系统**：Indigo（#4F46E5）+ Amber（#F59E0B）双主题（亮/暗），CSS 变量令牌在 `shared/design-system/tokens.css`
+- **图表策略**：Recharts 同步加载（折线/柱状/雷达/径向仪表） + ECharts 仅 Heatmap 懒加载（按需下载 ~110kB gzipped）
+- **错误体系**：3 级 ErrorBoundary（app/page/section），section 级 inline 重试，page 级居中刷新，app 级兜底
+- **Loading 体系**：5 类组件（TopLoader/RouteLoader/Skeleton/ButtonSpinner/TableSkeleton）
+- **主题持久化**：`localStorage.sims.theme`，`index.html` 内联脚本防 FOUC
+- **测试**：Vitest + Testing Library + jsdom（当前 12 个测试覆盖 Theme/ErrorBoundary/RoleGuard）
 
 ## 项目结构
 
@@ -96,14 +106,25 @@ SIMS-NEXT/
 │   │   └── journey_chapters.py  # 游戏关卡配置
 │   └── main.py              # 应用入口
 ├── frontend/src/
-│   ├── pages/               # 页面组件
-│   │   ├── NovelsChat.tsx   # 四大名著统一聊天页
-│   │   ├── Chat.tsx         # AI 助教聊天页
-│   │   ├── Prediction.tsx   # 升学预测页面
-│   │   └── Tutor.tsx        # AI 辅导页面
-│   ├── stores/              # Zustand 状态管理
-│   ├── components/ui/       # Shadcn/ui 组件
-│   └── lib/                 # API 封装 & 工具函数
+│   ├── app/                 # 路由 + Providers 装配
+│   │   ├── providers.tsx    # QueryClient / Theme / Auth / ErrorBoundary
+│   │   └── router.tsx       # createBrowserRouter + 懒加载路由
+│   ├── shared/              # 跨门户共享层
+│   │   ├── design-system/  # 设计令牌（CSS 变量 / 双主题）
+│   │   ├── theme/          # 自研 ThemeProvider（FOUC 防闪烁）
+│   │   ├── components/     # ErrorBoundary、Loading、StatCard、DataTable 等
+│   │   ├── charts/         # 图表（Recharts 同步 + ECharts 懒加载 Heatmap）
+│   │   ├── stores/         # auth-store（Zustand + persist）
+│   │   ├── hooks/          # useRoleGuard 等
+│   │   ├── api/            # 业务 API 封装
+│   │   └── lib/            # 工具函数
+│   ├── portals/            # 双门户：auth / student / teacher
+│   │   ├── auth/           # 登录 + 角色分流 + RoleGuard
+│   │   ├── student/        # 学生门户（顶导 + Dashboard + Tutor + 预测 + 助教）
+│   │   └── teacher/        # 教师工作台（侧栏 + 顶栏 + 主题切换 + Dashboard + CRUD + 分析）
+│   ├── components/ui/      # Shadcn/ui 原子组件
+│   ├── lib/                # API 基础封装 & 工具
+│   └── stores/             # 业务数据 Store（学生/教师/班级/成绩等）
 ├── scripts/                 # 数据库初始化、索引构建 & LLM 工具脚本
 ├── workspace/novels/        # PageIndex 索引文件
 ├── docs/                    # PRD、技术文档 & AI 预测模块介绍

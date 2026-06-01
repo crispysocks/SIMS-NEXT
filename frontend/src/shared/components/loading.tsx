@@ -25,7 +25,7 @@ export function RouteLoader({ message = '加载中...' }: { message?: string }) 
 }
 
 // 3. Skeleton — Block-level skeleton with shimmer
-export function Skeleton({ className }: { className?: string }) {
+export function Skeleton({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
     <div
       className={cn(
@@ -35,6 +35,7 @@ export function Skeleton({ className }: { className?: string }) {
         'before:animate-[shimmer_1.5s_infinite]',
         className
       )}
+      style={style}
     />
   );
 }

@@ -6,9 +6,9 @@ interface FetchOptions extends RequestInit {
 
 async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
   const { token, ...fetchOptions } = options;
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(options.headers || {}),
+    ...(options.headers as Record<string, string> | undefined || {}),
   };
 
   if (token) {
@@ -34,9 +34,9 @@ async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promis
 
 async function apiFetchStream(endpoint: string, options: FetchOptions = {}): Promise<ReadableStream<Uint8Array>> {
   const { token, ...fetchOptions } = options;
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...(options.headers || {}),
+    ...(options.headers as Record<string, string> | undefined || {}),
   };
 
   if (token) {

@@ -15,10 +15,16 @@ from app.predict.services.trace_service import traceable, get_trace_service
 SYSTEM_PROMPT = """你是一位专业的初中升学顾问，帮助学生分析考试成绩、预测升学方向、给出提分建议。
 
 重要规则：
-1. 必须基于用户提供的上下文数据进行回答，不要虚构学校名称或概率
-2. 如果上下文中有"保底学校"、"稳定学校"、"冲刺学校"信息，必须从数据中提取回答
-3. 如果上下文中有"加分模拟"数据，回答加分相关问题时必须引用该数据
-4. 回答要简洁具体，控制在200字以内
+1. 必须基于用户提供的上下文数据回答，不要虚构学校名称或概率
+2. 引用数据时要具体（如"超过录取线 X 分"、"排名 Y 名"），不要泛泛而谈
+3. 给提分建议时必须具体到"每天做什么、练什么题型、达到多少分"，避免"多练习""认真听讲"等空话
+4. 回答要分点、结构化，便于学生和家长快速理解
+5. 各 prompt 模板中已限定字数，按模板要求执行即可
+
+回答长度（按意图类型区分）：
+- 提分咨询：300-400 字（结构化五段式）
+- 综合分析：200-300 字
+- 志愿选择、风险分析、学习画像：100-200 字
 
 分析维度：
 1. 成绩定位 - 当前分数在全区/校的位置
@@ -28,17 +34,30 @@ SYSTEM_PROMPT = """你是一位专业的初中升学顾问，帮助学生分析�
 输出风格：
 - 语气亲切专业，像一位经验丰富的老师
 - 给出具体可操作的建议，不是泛泛而谈
-- 适当引用数据（如"超过录取线X分"）增加说服力
-- 字数控制在200字以内
+- 适当引用数据（如"超过录取线 X 分"）增加说服力
 """
 
 # 意图识别关键词
 INTENT_PATTERNS = {
-    "提分咨询": ["加", "分", "概率", "提升", "能上", "考上", "增加", "变化"],
+    "提分咨询": ["加", "分", "提分", "涨分", "涨", "提高", "提升", "概率", "能上", "考上", "增加", "变化"],
     "志愿选择": ["选", "哪个", "哪所", "怎么选", "冲", "保底", "稳定", "志愿"],
     "风险分析": ["为什么", "原因", "下滑", "下降", "波动", "不好", "风险"],
     "学习画像": ["学习", "特点", "强项", "弱项", "类型", "风格", "擅长"],
     "综合分析": ["分析", "看看", "怎么样", "情况", "评估", "全面", "总体"],
+}
+
+# 学科提分指导模板（按科目给 LLM 提供具体方法，避免空话）
+SUBJECT_GUIDANCE = {
+    "语文": "重点：阅读理解（每天 1 篇）+ 作文素材积累（每周 2 篇）+ 文言文背诵与字词基础",
+    "数学": "重点：基础+中档题保分（每天 10-15 道）+ 压轴题专练（每周 2-3 道）+ 错题本二刷",
+    "英语": "重点：单词（每天 20 个）+ 听力（每天 15 分钟）+ 阅读（每天 2 篇）+ 写作模板背诵",
+    "物理": "重点：概念公式梳理 + 应用题专练（每天 10 题）+ 实验探究题每周 2 道",
+    "化学": "重点：元素周期表与方程式默写 + 选择题保分 + 实验探究题专练",
+    "生物": "重点：核心概念记忆 + 图示题训练 + 实验设计题每周 1-2 道",
+    "政治": "重点：时事热点 + 主观题答题模板 + 关键词记忆",
+    "历史": "重点：时间线与事件因果梳理 + 材料题每周 2 道 + 简答题模板",
+    "地理": "重点：地图识读 + 气候/地形知识点 + 综合题训练",
+    "道法": "重点：时事热点 + 答题模板 + 关键词记忆",
 }
 
 # 首次欢迎语
@@ -134,8 +153,8 @@ class ChatService:
         }
         return context
 
-    def _analyze_weak_subjects(self, student_id: int, limit: int = 50) -> dict:
-        """分析薄弱科目"""
+    def _analyze_weak_subjects(self, student_id: int, limit: int = 100) -> dict:
+        """分析薄弱科目：含趋势、最高分参考、提分空间"""
         from collections import defaultdict
         from app.predict.repositories.exam_record_repository import ExamRecordRepository
         exam_repo = ExamRecordRepository(self.db)
@@ -152,16 +171,54 @@ class ChatService:
             if len(records) < 2:
                 continue
             records.sort(key=lambda x: x.exam_time)
-            latest_ranking = records[-1].ranking or 999
+
+            recent_scores = [r.score for r in records[-3:]]
+            if len(recent_scores) >= 2:
+                if recent_scores[-1] > recent_scores[0]:
+                    trend = "上升"
+                elif recent_scores[-1] < recent_scores[0]:
+                    trend = "下降"
+                else:
+                    trend = "平稳"
+            else:
+                trend = "数据不足"
+
+            recent_rankings = [r.ranking for r in records[-3:] if r.ranking is not None]
+            ranking_trend = "未知"
+            if len(recent_rankings) >= 2:
+                if recent_rankings[-1] < recent_rankings[0]:
+                    ranking_trend = "排名上升"
+                elif recent_rankings[-1] > recent_rankings[0]:
+                    ranking_trend = "排名下降"
+                else:
+                    ranking_trend = "排名平稳"
+
+            max_score = max(r.score for r in records)
+            min_score = min(r.score for r in records)
             avg_score = sum(r.score for r in records) / len(records)
+            latest_score = records[-1].score
+            latest_ranking = records[-1].ranking or 999
+            potential_gain = max_score - latest_score
+
             subject_analysis.append({
                 "subject": subject,
-                "avg_score": avg_score,
-                "latest_score": records[-1].score,
+                "avg_score": round(avg_score, 1),
+                "latest_score": latest_score,
                 "latest_ranking": latest_ranking,
+                "max_score": max_score,
+                "min_score": min_score,
+                "trend": trend,
+                "ranking_trend": ranking_trend,
+                "score_history": recent_scores,
+                "potential_gain": potential_gain,
+                "exam_count": len(records),
             })
 
-        sorted_subjects = sorted(subject_analysis, key=lambda x: x["latest_ranking"])
+        sorted_subjects = sorted(
+            subject_analysis,
+            key=lambda x: (x["latest_ranking"], x["potential_gain"]),
+            reverse=True,
+        )
         return {"weak_subjects": sorted_subjects[:3]}
 
     @traceable("ChatService")
@@ -189,32 +246,96 @@ class ChatService:
             return self._build_general_prompt(context, user_message, session_messages)
 
     def _build_score_increase_prompt(self, context: dict, user_message: str) -> str:
-        """提分咨询Prompt"""
+        """提分咨询 Prompt（五段式结构化输出）"""
         sim_text = ""
         for sim in context.get("simulation", [])[:4]:
-            sim_text += f"加{sim['score_increase']}分→{sim['new_score']:.0f}分，{sim['school_name']}概率{sim['probability']}%，变化{sim['prob_change']}；"
+            sim_text += (
+                f"  · 加 {sim['score_increase']} 分（总分 {sim['new_score']:.0f}）"
+                f" → {sim['school_name']} 概率 {sim['probability']}%"
+                f"（变化 {sim['prob_change']}）\n"
+            )
 
         weak_data = context.get("weak_subjects", {})
         weak_subjects = weak_data.get("weak_subjects", [])
         weak_text = ""
+        subject_hint_text = ""
+        seen_subjects = set()
         if weak_subjects:
             for ws in weak_subjects[:3]:
-                weak_text += f"{ws['subject']}({ws['latest_score']}分,排名{ws['latest_ranking']})；"
+                history_str = "→".join(str(s) for s in ws.get("score_history", []))
+                weak_text += (
+                    f"  · {ws['subject']}：最近 {ws['latest_score']} 分"
+                    f"（均分 {ws['avg_score']}，历史最高 {ws['max_score']}，最低 {ws['min_score']}），"
+                    f"单科排名 {ws['latest_ranking']}，{ws['trend']}（{ws['ranking_trend']}），"
+                    f"提分空间约 {ws['potential_gain']} 分（{ws['exam_count']} 次考试）\n"
+                    f"    近期成绩：{history_str}\n"
+                )
+                subj = ws["subject"]
+                if subj in SUBJECT_GUIDANCE and subj not in seen_subjects:
+                    subject_hint_text += f"  · {subj}：{SUBJECT_GUIDANCE[subj]}\n"
+                    seen_subjects.add(subj)
 
-        return f"""基于以下数据，回答用户关于提分的问题。
+        risk = context.get("risk", {})
+        risk_text = (
+            f"风险等级：{risk.get('risk_level', '低')}，"
+            f"风险点：{', '.join(risk.get('risk_tags', []) or ['无'])}"
+        )
+        portrait = context.get("portrait", {})
+        portrait_text = ""
+        if portrait:
+            bits = []
+            if portrait.get("learning_type"):
+                bits.append(f"学习类型：{portrait['learning_type']}")
+            if portrait.get("science_ability"):
+                bits.append(f"理科：{portrait['science_ability']}")
+            if portrait.get("english_ability"):
+                bits.append(f"英语：{portrait['english_ability']}")
+            if bits:
+                portrait_text = "【学习画像】 " + "，".join(bits) + "\n"
 
-【加分模拟数据】（总分变化）：
+        return f"""你是一位经验丰富的初中升学顾问。请基于以下数据，给出**具体可执行**的提分方案。
+
+【学生当前情况】
+- 总分：{context.get('current_score', 0):.0f} 分，排名 {context.get('current_ranking', '?')}（{context.get('ranking_trend', '波动')}）
+- {risk_text}
+{portrait_text}
+【薄弱科目分析】（按严重程度排序：ranking 越靠后、提分空间越大越优先）
+{weak_text if weak_text else "暂无薄弱科目数据"}
+
+【学科提分参考方法】
+{subject_hint_text if subject_hint_text else "暂无"}
+
+【加分模拟】（总分增加后能上的学校）
 {sim_text if sim_text else "暂无模拟数据"}
 
-【薄弱科目分析】：
-{weak_text if weak_text else "暂无科目数据"}
+【用户问题】
+{user_message}
 
-用户问题：{user_message}
+【输出要求 - 严格按以下五段式】
 
-回答要求：
-- 先指出薄弱科目，给出针对性建议
-- 如果有模拟数据，引用具体概率变化
-- 50字以内
+**1. 现状诊断**
+（1-2 句话点出核心问题：哪科最弱、趋势如何、瓶颈是什么）
+
+**2. 提分目标**
+（基于"历史最高分"和"提分空间"，给 1-2 个可实现目标，例如"数学 2 周内从 75 提到 85"，并说明可行性）
+
+**3. 具体方法**（最重要！必须具体到动作）
+针对每科薄弱点：
+- 重点练的题型/模块（如"数学函数与几何证明"、"英语完形填空"）
+- 每天/每周练习量（如"每天 10 道选择 + 2 道大题"）
+- 资源或方法（如"背诵 20 个高频词组 + 精读 1 篇短文"）
+
+**4. 时间安排**（1-2 周可执行计划）
+按天或按周列出：例如"周一三五数学专题，周二四英语阅读"
+
+**5. 预期效果**
+结合【加分模拟】数据，告诉用户提分后能进哪一档学校（如"加 10 分有 65% 概率进入 XX 中学"）
+
+【格式与字数】
+- 总字数 300-400 字
+- 严格分 5 段，每段必答（标题照搬）
+- 用具体数字（题数、天数、分数），禁止"多练习""认真听讲"等空话
+- 语气亲切专业，像经验丰富的老师在指导学生
 """
 
 
@@ -436,7 +557,7 @@ class ChatService:
         risk = context.get("risk", {})
 
         response = f"根据你的情况分析：\n\n"
-        response += f"1. 成绩定位：你的分数{score:.0f}分，排名{trend}。\n"
+        response += f"1. 成绩定位：你的总分 {score:.0f} 分，排名趋势 {trend}。\n"
 
         predictions = context.get("predictions", {})
         stretch = predictions.get("冲刺", [])
@@ -444,25 +565,38 @@ class ChatService:
         secure = predictions.get("保底", [])
 
         if stretch:
-            response += f"2. 志愿建议：冲刺学校有{stretch[0].school_name}（概率{stretch[0].admission_probability}%）。\n"
+            response += f"2. 志愿建议：冲刺学校有 {stretch[0].school_name}（概率 {stretch[0].admission_probability}%）。\n"
         if stable:
-            response += f"   稳定学校有{stable[0].school_name}（概率{stable[0].admission_probability}%）。\n"
+            response += f"   稳定学校有 {stable[0].school_name}（概率 {stable[0].admission_probability}%）。\n"
         if secure:
-            response += f"   保底学校有{secure[0].school_name}（概率{secure[0].admission_probability}%）。\n"
+            response += f"   保底学校有 {secure[0].school_name}（概率 {secure[0].admission_probability}%）。\n"
 
-        response += f"3. 提分建议："
-        weak_subjects = context.get("weak_subjects", {}).get("weak_subjects", [])
-        if weak_subjects:
-            ws = weak_subjects[0]
-            response += f"{ws['subject']}是你的薄弱科目(得分{ws['latest_score']})，建议每天针对性训练30分钟。"
+        response += "3. 提分建议：\n"
+        weak = context.get("weak_subjects", {}).get("weak_subjects", [])
+        if weak:
+            for ws in weak[:2]:
+                target = max(ws["max_score"], ws["latest_score"] + 5)
+                hint = SUBJECT_GUIDANCE.get(ws["subject"], "建议针对性练习并建立错题本")
+                response += (
+                    f"   · {ws['subject']}（最近 {ws['latest_score']} 分"
+                    f"，历史最高 {ws['max_score']}，趋势 {ws['trend']}）："
+                    f"目标 2 周内提至 {target} 分。"
+                    f"{hint}。\n"
+                )
         elif portrait.get("english_ability") == "弱":
-            response += "英语是你的弱项，建议加强阅读训练。"
+            response += "   · 英语是你的弱项，建议每天 20 词 + 1 篇阅读。\n"
         elif portrait.get("science_ability") == "强":
-            response += "理科是你的强项，可以适当挑战难题。"
+            response += "   · 理科是你的强项，可挑战压轴题进一步拉开差距。\n"
         else:
-            response += "建议重点巩固薄弱科目，整理错题本并定期复习。"
+            response += "   · 建议查漏补缺，每天固定练习薄弱模块。\n"
+
+        sim = context.get("simulation", [])
+        if sim:
+            s = sim[0]
+            response += f"4. 预期：加 {s['score_increase']} 分后 {s['school_name']} 概率 {s['probability']}% ({s['prob_change']})。\n"
 
         if risk.get("risk_level") == "高":
-            response += f"\n风险提示：{risk.get('risk_tags', [])[0] if risk.get('risk_tags') else ''}，需要关注。"
+            tag = risk.get("risk_tags", [None])[0] or "需关注科目"
+            response += f"5. 风险提示：{tag}，需要重点关注。"
 
         return response

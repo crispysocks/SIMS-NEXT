@@ -46,15 +46,26 @@ export function PredictionPage() {
 
   const [chatInput, setChatInput] = useState('');
   const [selectedSchool, setSelectedSchool] = useState<string>('');
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const isAtBottomRef = useRef(true);
 
   useEffect(() => {
     fetchStudents();
   }, [fetchStudents]);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = chatContainerRef.current;
+    if (!el) return;
+    if (isAtBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
+    }
   }, [chatMessages]);
+
+  const handleChatScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    isAtBottomRef.current = distanceFromBottom < 50;
+  };
 
   const handleStudentSelect = (studentId: string) => {
     const student = students.find((s) => s.id === parseInt(studentId));
@@ -483,7 +494,11 @@ export function PredictionPage() {
               )}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto space-y-4 min-h-[300px] max-h-[400px]">
+          <div
+            ref={chatContainerRef}
+            onScroll={handleChatScroll}
+            className="flex-1 min-h-0 overflow-y-auto space-y-4"
+          >
             {chatMessages.length === 0 ? (
               <div className="text-center text-gray-500 py-8">
                 <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-300" />
@@ -508,7 +523,6 @@ export function PredictionPage() {
                 </div>
               ))
             )}
-            <div ref={chatEndRef} />
           </div>
           <div className="flex gap-2 mt-4 pt-4 border-t">
             <Input

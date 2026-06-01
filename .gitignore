@@ -230,6 +230,8 @@ reference
 logs/
 ai-tutor/
 frontend/node_modules/
+app/predict/README.md
+提分测试输出.txt
 
 # Node.js (前端)
 frontend/node_modules/

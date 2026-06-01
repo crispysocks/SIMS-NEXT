@@ -23,7 +23,7 @@ export function Classes() {
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['classes', { search }],
-    queryFn: () => classesApi.list(),
+    queryFn: () => classesApi.list({ class_name: search || undefined }),
   });
 
   const rows = data ?? [];

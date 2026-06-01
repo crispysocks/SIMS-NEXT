@@ -105,10 +105,9 @@ export function DataTable<T extends Record<string, any>>({
     return filteredCount;
   })();
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const showPagination = isServerMode
-    ? totalCount > pageSize
-    : totalCount > pageSize;
+  const currentPageSize = isServerMode ? pagination!.pageSize : pageSize;
+  const totalPages = Math.max(1, Math.ceil(totalCount / currentPageSize));
+  const showPagination = totalCount > currentPageSize;
 
   const goToPage = (next: number) => {
     if (isServerMode) {

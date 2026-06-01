@@ -24,7 +24,7 @@ export function Scores() {
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['scores', { search }],
-    queryFn: () => scoresApi.list(),
+    queryFn: () => scoresApi.list({ student_name: search || undefined }),
   });
 
   const rows = data ?? [];

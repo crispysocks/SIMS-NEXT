@@ -8,6 +8,7 @@ LLM API 客户端封装
 from openai import OpenAI
 import json
 import os
+import time
 
 # 常量定义
 DEFAULT_MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
@@ -17,6 +18,22 @@ client = OpenAI(
     api_key=os.getenv("LLM_API_KEY"),
     base_url=os.getenv("LLM_BASE_URL", "https://api.deepseek.com/v1")
 )
+
+# 尝试导入 LLM 日志记录器（脚本环境可能没有 app 包）
+try:
+    from app.core.llm_logger import log_llm
+    _has_llm_logger = True
+except ImportError:
+    _has_llm_logger = False
+
+
+def _try_log(record: dict):
+    """尝试记录日志，导入失败时静默跳过。"""
+    if _has_llm_logger:
+        try:
+            log_llm(record)
+        except Exception:
+            pass
 
 
 def call_llm(prompt: str, model: str = DEFAULT_MODEL, response_format: str = "json_object", timeout: int = 60) -> dict:
@@ -38,9 +55,10 @@ def call_llm(prompt: str, model: str = DEFAULT_MODEL, response_format: str = "js
     if not prompt or not prompt.strip():
         return {"error": "prompt is empty or None"}
 
+    messages = [{"role": "user", "content": prompt}]
     kwargs = {
         "model": model,
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": messages,
         "timeout": timeout
     }
 
@@ -48,8 +66,32 @@ def call_llm(prompt: str, model: str = DEFAULT_MODEL, response_format: str = "js
     if response_format == "json_object":
         kwargs["response_format"] = {"type": "json_object"}
 
-    response = client.chat.completions.create(**kwargs)
+    t0 = time.time()
+    _try_log({
+        "type": "llm_request",
+        "model": model,
+        "messages": messages,
+    })
+
+    try:
+        response = client.chat.completions.create(**kwargs)
+    except Exception as e:
+        _try_log({
+            "type": "llm_error",
+            "model": model,
+            "error": str(e),
+            "latency_ms": int((time.time() - t0) * 1000),
+        })
+        raise
+
     content = response.choices[0].message.content
+    _try_log({
+        "type": "llm_response",
+        "model": model,
+        "content": content,
+        "usage": getattr(response, "usage", None),
+        "latency_ms": int((time.time() - t0) * 1000),
+    })
 
     # 尝试解析 JSON，处理可能包含非 JSON 前缀/后缀的情况
     try:

@@ -9,6 +9,7 @@ Combines:
 
 import json
 import logging
+import time
 from typing import Iterator
 from openai import OpenAI
 from sqlalchemy.orm import Session
@@ -18,6 +19,7 @@ from app.services.journey_engine import JourneyEngine
 from app.core.milvus import MilvusService
 from app.core.embedding import embed
 from app.core.config import LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
+from app.core.llm_logger import log_llm
 
 logger = logging.getLogger(__name__)
 
@@ -219,7 +221,22 @@ class NovelsUnifiedService:
         ]
         tool_call_count = 0
 
+        log_llm({
+            "type": "user_message",
+            "session_id": session_id,
+            "content": message,
+        })
+
         while tool_call_count < MAX_TOOL_CALLS:
+            t0 = time.time()
+            log_llm({
+                "type": "llm_request",
+                "model": model,
+                "messages": messages,
+                "tools": TOOLS,
+                "stream": True,
+            })
+
             response = self.client.chat.completions.create(
                 model=model,
                 messages=messages,
@@ -250,6 +267,20 @@ class NovelsUnifiedService:
                             tool_calls_collected[tc.index]["function"]["arguments"] += tc.function.arguments
 
             valid_tool_calls = [tc for tc in tool_calls_collected if tc and tc.get("function", {}).get("name")]
+
+            full_text = "".join(assistant_content)
+            log_llm({
+                "type": "llm_response",
+                "model": model,
+                "content": full_text,
+                "tool_calls": [
+                    {"id": tc["id"], "function": tc["function"]}
+                    for tc in valid_tool_calls
+                ],
+                "finish_reason": "tool_calls" if valid_tool_calls else "stop",
+                "latency_ms": int((time.time() - t0) * 1000),
+            })
+
             if not valid_tool_calls:
                 break
 
@@ -259,8 +290,12 @@ class NovelsUnifiedService:
                 f"{[tc['function']['name'] for tc in valid_tool_calls]}"
             )
 
-            # Yield tool_call events so the frontend can show loading indicators
             for tc in valid_tool_calls:
+                log_llm({
+                    "type": "tool_call",
+                    "tool": tc["function"]["name"],
+                    "args": tc["function"]["arguments"],
+                })
                 yield (
                     f"data: {json.dumps({'type': 'tool_call', 'tool': tc['function']['name'], 'args': tc['function']['arguments']}, ensure_ascii=False)}\n\n"
                 )
@@ -269,8 +304,16 @@ class NovelsUnifiedService:
             for tc in valid_tool_calls:
                 func_name = tc["function"]["name"]
                 func_args = json.loads(tc["function"]["arguments"]) if tc["function"]["arguments"] else {}
+                t_tool = time.time()
                 result = self._call_tool(func_name, func_args)
                 tool_results.append({"tool_call_id": tc["id"], "result": result})
+                log_llm({
+                    "type": "tool_result",
+                    "tool": func_name,
+                    "summary": result[:500],
+                    "ok": True,
+                    "duration_ms": int((time.time() - t_tool) * 1000),
+                })
                 yield (
                     f"data: {json.dumps({'type': 'tool_result', 'tool': func_name, 'result': result[:500]}, ensure_ascii=False)}\n\n"
                 )
@@ -297,15 +340,33 @@ class NovelsUnifiedService:
                 "role": "user",
                 "content": "You have enough information. Summarize your findings for the user.",
             })
+            t0 = time.time()
+            log_llm({
+                "type": "llm_request",
+                "model": model,
+                "messages": messages,
+                "stream": True,
+            })
+
             response = self.client.chat.completions.create(
                 model=model,
                 messages=messages,
                 stream=True,
                 temperature=0.7,
             )
+            final_content = []
             for chunk in response:
                 delta = chunk.choices[0].delta
                 if delta.content:
+                    final_content.append(delta.content)
                     yield f"data: {json.dumps({'type': 'text', 'content': delta.content}, ensure_ascii=False)}\n\n"
+
+            log_llm({
+                "type": "llm_response",
+                "model": model,
+                "content": "".join(final_content),
+                "finish_reason": "stop",
+                "latency_ms": int((time.time() - t0) * 1000),
+            })
 
         yield f"data: {json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"

@@ -3,8 +3,10 @@
 通过配置切换 base_url 可切换到任何 OpenAI 兼容的模型服务。
 """
 
+import time
 from openai import AsyncOpenAI
 from app.core.config import LLM_BASE_URL, LLM_API_KEY, LLM_MODEL, LLM_TIMEOUT
+from app.core.llm_logger import log_llm
 from app.agent.tools import TOOL_DEFINITIONS
 
 
@@ -42,9 +44,21 @@ async def chat_completion(
     Returns:
         OpenAI 格式的 completion response dict
     """
+    model_name = model or LLM_MODEL
+    t0 = time.time()
+
+    log_llm({
+        "type": "llm_request",
+        "model": model_name,
+        "messages": messages,
+        "tools": tools,
+        "tool_choice": tool_choice,
+        "stream": stream,
+    })
+
     client = get_client()
     kwargs = {
-        "model": model or LLM_MODEL,
+        "model": model_name,
         "messages": messages,
         "temperature": 0.3,
     }
@@ -52,12 +66,32 @@ async def chat_completion(
         kwargs["tools"] = tools
         kwargs["tool_choice"] = tool_choice
 
-    if stream:
-        kwargs["stream"] = True
-        return await client.chat.completions.create(**kwargs)
+    try:
+        if stream:
+            kwargs["stream"] = True
+            return await client.chat.completions.create(**kwargs)
 
-    response = await client.chat.completions.create(**kwargs)
-    return response.model_dump()
+        response = await client.chat.completions.create(**kwargs)
+        result = response.model_dump()
+        choice = result["choices"][0]
+        log_llm({
+            "type": "llm_response",
+            "model": model_name,
+            "content": choice["message"].get("content"),
+            "tool_calls": choice["message"].get("tool_calls"),
+            "finish_reason": choice.get("finish_reason"),
+            "usage": result.get("usage"),
+            "latency_ms": int((time.time() - t0) * 1000),
+        })
+        return result
+    except Exception as e:
+        log_llm({
+            "type": "llm_error",
+            "model": model_name,
+            "error": str(e),
+            "latency_ms": int((time.time() - t0) * 1000),
+        })
+        raise
 
 
 async def extract_tool_calls(messages: list[dict]) -> list[dict]:

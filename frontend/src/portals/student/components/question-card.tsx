@@ -1,48 +1,67 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
 
-export interface QuestionOption {
-  id: string;
-  label: string;
-}
-
-export function QuestionCard({ question, options, onSubmit, disabled }: {
+export function QuestionCard({ question, onSubmit, disabled, placeholder }: {
   question: string;
-  options: QuestionOption[];
-  onSubmit: (optionId: string) => void;
+  onSubmit: (answer: string) => void;
   disabled?: boolean;
+  placeholder?: string;
 }) {
-  const [selected, setSelected] = useState<string | null>(null);
+  const [text, setText] = useState('');
+
+  const trimmed = text.trim();
+  const canSubmit = !disabled && trimmed.length > 0;
+
+  const handleSubmit = () => {
+    if (!canSubmit) return;
+    onSubmit(trimmed);
+    setText('');
+  };
 
   return (
     <Card className="p-8">
       <p className="text-base text-[var(--text)] leading-relaxed mb-6 whitespace-pre-line">{question}</p>
-      <div className="space-y-2">
-        {options.map((opt) => (
-          <button
-            key={opt.id}
-            onClick={() => !disabled && setSelected(opt.id)}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit();
+        }}
+        className="space-y-2"
+      >
+        <label
+          htmlFor="tutor-answer"
+          className="text-xs text-[var(--text-muted)] block"
+        >
+          输入你的答案，如 (-1, 0) 或 y = 2x + 1
+        </label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="tutor-answer"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
             disabled={disabled}
-            className={cn(
-              'w-full text-left p-4 rounded-lg border-2 transition-all text-sm',
-              selected === opt.id
-                ? 'border-[var(--primary)] bg-[var(--primary-soft)]/40'
-                : 'border-[var(--border)] hover:border-[var(--primary)]/50',
-              disabled && 'opacity-60 cursor-not-allowed'
-            )}
+            placeholder={placeholder ?? '在此输入你的答案...'}
+            className="flex-1 h-10 px-3 text-base"
+            autoComplete="off"
+            autoFocus
+          />
+          <Button
+            type="submit"
+            disabled={!canSubmit}
+            className="h-10"
           >
-            <span className="font-semibold mr-2 text-[var(--text-muted)]">{opt.id}.</span>
-            {opt.label}
-          </button>
-        ))}
-      </div>
-      <div className="mt-6 flex justify-end">
-        <Button onClick={() => selected && onSubmit(selected)} disabled={!selected || disabled}>
-          提交答案
-        </Button>
-      </div>
+            提交答案
+          </Button>
+        </div>
+      </form>
     </Card>
   );
 }

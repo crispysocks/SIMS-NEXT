@@ -15,11 +15,9 @@ export interface Question {
 }
 
 // 1:1 mirror of backend `AnswerResult` (app/schemas/tutor.py). The backend
-// does not have an `options` field on the question. The UI synthesizes an
-// A/B/C/D option set so the existing multiple-choice QuestionCard still
-// renders. The chosen option letter is sent as `student_answer` to the
-// backend, which compares it to the actual text answer returned in
-// `correct_answer`.
+// does not have an `options` field on the question; the UI collects a
+// free-text `student_answer` and the backend compares it to the actual text
+// answer returned in `correct_answer`.
 export interface TutorResponseOut {
   explanation: string;
   hint: string;
@@ -103,10 +101,10 @@ export interface SubjectInfo {
 export const tutorApi = {
   getNextQuestion: () => api.get<Question>('/tutor/question'),
 
-  // The backend's `AnswerSubmission` is just `{ student_answer: string }`.
-  // We accept an `optionId` from the UI and forward it as `student_answer`.
-  submitAnswer: (data: { optionId: string }) =>
-    api.post<SubmitResult>('/tutor/answer', { student_answer: data.optionId }),
+  // 1:1 mirror of backend `AnswerSubmission`: `{ student_answer: string }`.
+  // The UI collects free-text input and forwards it directly.
+  submitAnswer: (data: { student_answer: string }) =>
+    api.post<SubmitResult>('/tutor/answer', { student_answer: data.student_answer }),
 
   requestHint: () => api.post<HintResponse>('/tutor/hint', {}),
 

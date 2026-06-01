@@ -2,12 +2,10 @@ import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Lightbulb } from 'lucide-react';
 import { tutorApi } from '@/shared/api/tutor';
-import type { Question } from '@/shared/api/tutor';
 import { PageHeader } from '@/shared/components/page-header';
 import { SectionErrorBoundary } from '@/shared/components/error-boundary';
 import { Skeleton } from '@/shared/components/loading';
 import { QuestionCard } from '../components/question-card';
-import type { QuestionOption } from '../components/question-card';
 import { FeedbackAnimation } from '../components/feedback-animation';
 import { MasteryRing } from '../components/mastery-ring';
 import { Card } from '@/components/ui/card';
@@ -19,16 +17,6 @@ interface Feedback {
   kind: FeedbackKind;
   message: string;
 }
-
-// Backend `QuestionOut` does not include options. Synthesize an A/B/C/D set
-// so the existing multiple-choice QuestionCard keeps rendering. Each
-// option's `id` is the letter we send to the backend as `student_answer`.
-const SYNTHETIC_OPTIONS: QuestionOption[] = [
-  { id: 'A', label: 'A' },
-  { id: 'B', label: 'B' },
-  { id: 'C', label: 'C' },
-  { id: 'D', label: 'D' },
-];
 
 export function Tutor() {
   const qc = useQueryClient();
@@ -50,7 +38,7 @@ export function Tutor() {
   });
 
   const submit = useMutation({
-    mutationFn: (optionId: string) => tutorApi.submitAnswer({ optionId }),
+    mutationFn: (answer: string) => tutorApi.submitAnswer({ student_answer: answer }),
     onSuccess: (result) => {
       const msg = result.tutor_response?.explanation?.trim()
         || `正确答案：${result.correct_answer}`;
@@ -96,7 +84,6 @@ export function Tutor() {
             <div className="space-y-4">
               <QuestionCard
                 question={question.question_text}
-                options={SYNTHETIC_OPTIONS}
                 onSubmit={submit.mutate}
                 disabled={submit.isPending || feedback !== null}
               />
@@ -115,7 +102,7 @@ export function Tutor() {
                   className="text-[var(--warning)]"
                 >
                   <Lightbulb className="w-4 h-4 mr-1" />
-                  {hintText ? `再来一提示（剩余 ${3 - (hint.data?.level ?? 0)}）` : '需要提示'}
+                  {hintText ? `再来一提示（剩余 ${hint.data?.remaining ?? 0}）` : '需要提示'}
                 </Button>
               </div>
 

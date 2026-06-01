@@ -16,6 +16,7 @@ const Classes = lazy(() => import('@/portals/teacher/pages/classes').then((m) =>
 const Teachers = lazy(() => import('@/portals/teacher/pages/teachers').then((m) => ({ default: m.Teachers })));
 const Scores = lazy(() => import('@/portals/teacher/pages/scores').then((m) => ({ default: m.Scores })));
 const Analysis = lazy(() => import('@/portals/teacher/pages/analysis').then((m) => ({ default: m.Analysis })));
+const Agent = lazy(() => import('@/portals/teacher/pages/agent').then((m) => ({ default: m.Agent })));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthed = useAuthStore((s) => s.isAuthenticated);
@@ -49,6 +50,7 @@ export const router = createBrowserRouter([
       { path: 'teachers', element: withSuspense(<Teachers />) },
       { path: 'scores', element: withSuspense(<Scores />) },
       { path: 'analysis', element: withSuspense(<Analysis />) },
+      { path: 'agent', element: withSuspense(<Agent />) },
     ],
   },
   { path: '/', element: <Navigate to="/login" replace /> },

@@ -12,6 +12,13 @@ export interface DataTableColumn<T> {
   render?: (row: T) => React.ReactNode;
 }
 
+export interface ServerPagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  onChange: (page: number) => void;
+}
+
 export interface DataTableProps<T> {
   columns: DataTableColumn<T>[];
   data: T[];
@@ -23,6 +30,15 @@ export interface DataTableProps<T> {
   emptyDescription?: string;
   rowKey: (row: T) => string;
   onRowClick?: (row: T) => void;
+  // Server-driven mode: when provided, data is already paged and the table
+  // does NOT do client-side filtering or client-side pagination. Total and
+  // current page come from the server, and the parent owns the page state.
+  pagination?: ServerPagination;
+  // Controlled search: when `onSearch` is provided, the search input is
+  // controlled by the parent (the value of `searchQuery`) and changes are
+  // reported back. The table does not maintain its own search state.
+  searchQuery?: string;
+  onSearch?: (query: string) => void;
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -36,20 +52,70 @@ export function DataTable<T extends Record<string, any>>({
   emptyDescription,
   rowKey,
   onRowClick,
+  pagination,
+  searchQuery,
+  onSearch,
 }: DataTableProps<T>) {
-  const [search, setSearch] = useState('');
-  const [page, setPage] = useState(1);
+  const isServerMode = pagination !== undefined;
+  const isControlledSearch = onSearch !== undefined;
 
-  const filtered = searchable && search
-    ? data.filter((row) =>
-        (searchKeys ?? (Object.keys(row) as (keyof T)[])).some((k) =>
-          String(row[k]).toLowerCase().includes(search.toLowerCase())
-        )
-      )
-    : data;
+  // Uncontrolled search state — only used when no `onSearch` is provided.
+  const [internalSearch, setInternalSearch] = useState('');
+  const search = isControlledSearch ? (searchQuery ?? '') : internalSearch;
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
+  // Uncontrolled page state — only used when no `pagination` is provided.
+  const [internalPage, setInternalPage] = useState(1);
+  const currentPage = isServerMode ? pagination!.page : internalPage;
+
+  const handleSearchChange = (value: string) => {
+    if (isControlledSearch) {
+      onSearch!(value);
+    } else {
+      setInternalSearch(value);
+      setInternalPage(1);
+    }
+  };
+
+  // In server mode the parent already filtered and paged the data — render as-is.
+  // Otherwise (legacy client-side) we filter then paginate locally.
+  const visible: T[] = isServerMode
+    ? data
+    : (() => {
+        const filtered = searchable && search
+          ? data.filter((row) =>
+              (searchKeys ?? (Object.keys(row) as (keyof T)[])).some((k) =>
+                String(row[k]).toLowerCase().includes(search.toLowerCase())
+              )
+            )
+          : data;
+        const start = (currentPage - 1) * pageSize;
+        return filtered.slice(start, start + pageSize);
+      })();
+
+  // In server mode total comes from the pagination prop; in client mode
+  // we recompute it from the filtered dataset length.
+  const totalCount = isServerMode ? pagination!.total : (() => {
+    const filteredCount = searchable && search
+      ? data.filter((row) =>
+          (searchKeys ?? (Object.keys(row) as (keyof T)[])).some((k) =>
+            String(row[k]).toLowerCase().includes(search.toLowerCase())
+          )
+        ).length
+      : data.length;
+    return filteredCount;
+  })();
+
+  const currentPageSize = isServerMode ? pagination!.pageSize : pageSize;
+  const totalPages = Math.max(1, Math.ceil(totalCount / currentPageSize));
+  const showPagination = totalCount > currentPageSize;
+
+  const goToPage = (next: number) => {
+    if (isServerMode) {
+      pagination!.onChange(next);
+    } else {
+      setInternalPage(next);
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -58,7 +124,7 @@ export function DataTable<T extends Record<string, any>>({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
           <input
             value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="搜索..."
             className="w-full h-9 pl-9 pr-3 rounded-md bg-[var(--surface)] border border-[var(--border)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
           />
@@ -80,10 +146,10 @@ export function DataTable<T extends Record<string, any>>({
             <tbody>
               {loading ? (
                 <tr><td colSpan={columns.length} className="p-4"><TableSkeleton rows={5} cols={columns.length} /></td></tr>
-              ) : paged.length === 0 ? (
+              ) : visible.length === 0 ? (
                 <tr><td colSpan={columns.length}><EmptyState title={emptyTitle} description={emptyDescription} /></td></tr>
               ) : (
-                paged.map((row) => (
+                visible.map((row) => (
                   <tr
                     key={rowKey(row)}
                     onClick={() => onRowClick?.(row)}
@@ -102,14 +168,14 @@ export function DataTable<T extends Record<string, any>>({
         </div>
       </div>
 
-      {filtered.length > pageSize && (
+      {showPagination && (
         <div className="flex items-center justify-between text-xs text-[var(--text-muted)]">
-          <span>共 {filtered.length} 条，第 {page} / {totalPages} 页</span>
+          <span>共 {totalCount} 条，第 {currentPage} / {totalPages} 页</span>
           <div className="flex gap-1">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="p-1 rounded hover:bg-[var(--surface-2)] disabled:opacity-40">
+            <button onClick={() => goToPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1} className="p-1 rounded hover:bg-[var(--surface-2)] disabled:opacity-40">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="p-1 rounded hover:bg-[var(--surface-2)] disabled:opacity-40">
+            <button onClick={() => goToPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages} className="p-1 rounded hover:bg-[var(--surface-2)] disabled:opacity-40">
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>

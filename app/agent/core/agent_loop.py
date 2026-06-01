@@ -13,6 +13,7 @@ from typing import AsyncGenerator
 from sqlalchemy.orm import Session
 
 from app.core.config import LLM_MAX_RETRIES
+from app.core.llm_logger import log_llm
 from app.agent.core.llm_client import chat_completion
 from app.agent.core.prompt import build_system_prompt
 from app.agent.core.sse_event import (
@@ -58,6 +59,12 @@ async def run_agent_loop(
     sm.db = db
     sm.add_message(session_id, "user", {"type": "text", "text": user_message})
 
+    log_llm({
+        "type": "user_message",
+        "session_id": session_id,
+        "content": user_message,
+    })
+
     yield ThinkingEvent(text="正在分析你的问题...").to_sse()
 
     system_prompt = build_system_prompt(class_id, class_name)
@@ -65,8 +72,13 @@ async def run_agent_loop(
     messages = _build_llm_messages(system_prompt, history)
 
     try:
-        response = await chat_completion(messages, tools=TOOL_DEFINITIONS)
+        response = await chat_completion(messages, tools=TOOL_DEFINITIONS, session_id=session_id)
     except Exception as e:
+        log_llm({
+            "type": "llm_error",
+            "session_id": session_id,
+            "error": f"LLM 调用失败: {e}",
+        })
         yield ErrorEvent(message=f"LLM 调用失败: {e}", recoverable=False).to_sse()
         yield DoneEvent(session_id=session_id, message_id=-1).to_sse()
         return
@@ -99,7 +111,7 @@ async def run_agent_loop(
         t0 = time.time()
 
         try:
-            result_list = await execute_tools_parallel([tc], db, class_id)
+            result_list = await execute_tools_parallel([tc], db, class_id, session_id=session_id)
             r = result_list[0]
             r["params"] = args
             r["duration_ms"] = int((time.time() - t0) * 1000)
@@ -107,6 +119,15 @@ async def run_agent_loop(
             all_tool_results.append(r)
         except Exception as e:
             yield ToolEndEvent(tool=tool_name, summary=str(e), ok=False).to_sse()
+            log_llm({
+                "type": "tool_result",
+                "session_id": session_id,
+                "tool": tool_name,
+                "summary": str(e),
+                "ok": False,
+                "params": args,
+                "duration_ms": 0,
+            })
             all_tool_results.append({
                 "tool_name": tool_name,
                 "summary": str(e),
@@ -135,7 +156,7 @@ async def run_agent_loop(
         ]
 
         try:
-            check_response = await chat_completion(check_prompt, tools=TOOL_DEFINITIONS)
+            check_response = await chat_completion(check_prompt, tools=TOOL_DEFINITIONS, session_id=session_id)
         except Exception:
             break
 
@@ -157,7 +178,7 @@ async def run_agent_loop(
             yield ToolStartEvent(tool=tool_name, args_summary=f"(第{deep_count}步深入)").to_sse()
             t0 = time.time()
             try:
-                result_list = await execute_tools_parallel([tc], db, class_id)
+                result_list = await execute_tools_parallel([tc], db, class_id, session_id=session_id)
                 r = result_list[0]
                 r["params"] = args
                 r["duration_ms"] = int((time.time() - t0) * 1000)
@@ -165,6 +186,15 @@ async def run_agent_loop(
                 all_tool_results.append(r)
             except Exception as e:
                 yield ToolEndEvent(tool=tool_name, summary=str(e), ok=False).to_sse()
+                log_llm({
+                    "type": "tool_result",
+                    "session_id": session_id,
+                    "tool": tool_name,
+                    "summary": str(e),
+                    "ok": False,
+                    "params": args,
+                    "duration_ms": 0,
+                })
                 all_tool_results.append({
                     "tool_name": tool_name, "summary": str(e),
                     "data_id": None, "full_data": None, "ok": False,
@@ -206,7 +236,7 @@ async def run_agent_loop(
 
     try:
         # 先用非流式获取，再逐字 yield
-        response = await chat_completion(final_messages)
+        response = await chat_completion(final_messages, session_id=session_id)
         full_text = response["choices"][0]["message"]["content"]
         # 按句子/短语切分输出，模拟流式体验
         import re
@@ -215,17 +245,28 @@ async def run_agent_loop(
             if chunk:
                 yield TextDeltaEvent(text=chunk).to_sse()
 
-        validated = await _validate_with_retry(final_messages, full_text)
+        validated = await _validate_with_retry(final_messages, full_text, session_id=session_id)
         if validated:
             assistant_msg.content_json["text"] = json.dumps(validated, ensure_ascii=False)
         else:
             assistant_msg.content_json["text"] = full_text
+
+        log_llm({
+            "type": "assistant_text",
+            "session_id": session_id,
+            "content": full_text,
+        })
 
         assistant_msg.content_json["data_card_ids"] = [
             tr["data_id"] for tr in all_tool_results if tr.get("data_id")
         ]
         db.commit()
     except Exception as e:
+        log_llm({
+            "type": "llm_error",
+            "session_id": session_id,
+            "error": f"生成失败: {e}",
+        })
         yield ErrorEvent(message=f"生成失败: {e}", recoverable=False).to_sse()
 
     yield DoneEvent(session_id=session_id, message_id=assistant_msg.id).to_sse()
@@ -292,7 +333,7 @@ async def _check_rule_triggers(
 
 
 async def _validate_with_retry(
-    messages: list[dict], first_response: str
+    messages: list[dict], first_response: str, session_id: str | None = None
 ) -> dict | None:
     for attempt in range(int(LLM_MAX_RETRIES) + 1):
         try:
@@ -300,7 +341,7 @@ async def _validate_with_retry(
             if attempt > 0:
                 retry_msg = "上一条回复格式不符合要求，请严格按 JSON Schema 输出。"
                 messages.append({"role": "user", "content": retry_msg})
-                response = await chat_completion(messages)
+                response = await chat_completion(messages, session_id=session_id)
                 data = json.loads(response["choices"][0]["message"]["content"])
 
             validated = validate_llm_output(data)

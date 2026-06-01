@@ -15,4 +15,8 @@ dependencies = [
     "passlib>=1.7.4",
     "bcrypt>=4.1.0",
     "anthropic>=0.49.0",
+    "openai>=2.38.0",
+    "pypdf2>=3.0.1",
+    "pyyaml>=6.0.3",
+    "pymilvus>=3.0.0",
 ]

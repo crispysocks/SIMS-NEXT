@@ -1,7 +1,9 @@
 -- Student Information Management System Database Setup
 -- This script creates the students table
 
-CREATE DATABASE IF NOT EXISTS sims;
+SET NAMES utf8mb4;
+DROP DATABASE IF EXISTS sims;
+CREATE DATABASE sims CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE sims;
 
 CREATE TABLE IF NOT EXISTS students (
@@ -10,6 +12,7 @@ CREATE TABLE IF NOT EXISTS students (
     name VARCHAR(50) NOT NULL,
     gender VARCHAR(10) NOT NULL,
     age INT NOT NULL,
+    region VARCHAR(50),
     native_place VARCHAR(100),
     class_id INT,
     enrollment_date DATE NOT NULL,
@@ -143,6 +146,13 @@ CREATE TABLE IF NOT EXISTS exam_records (
 CREATE TABLE IF NOT EXISTS student_portraits (
     id INT AUTO_INCREMENT PRIMARY KEY,
     student_id INT NOT NULL UNIQUE,
+    learning_type VARCHAR(20) COMMENT '稳定型, 波动型, 退步型',
+    science_ability VARCHAR(10) COMMENT '理科能力等级',
+    english_ability VARCHAR(10) COMMENT '英语能力等级',
+    improvement_potential VARCHAR(10) COMMENT '提升潜力等级',
+    current_tier VARCHAR(20),
+    target_tier VARCHAR(20),
+    risk_tags TEXT COMMENT 'JSON - 风险标签',
     overall_score FLOAT NOT NULL DEFAULT 0.0,
     subject_strengths TEXT COMMENT 'JSON - 优势学科',
     subject_weaknesses TEXT COMMENT 'JSON - 弱势学科',
@@ -158,7 +168,7 @@ CREATE TABLE IF NOT EXISTS student_portraits (
 CREATE TABLE IF NOT EXISTS chat_sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     student_id INT NOT NULL,
-    messages TEXT NOT NULL DEFAULT '[]',
+    messages TEXT NOT NULL,
     message_count INT DEFAULT 0,
     last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     is_deleted BOOLEAN DEFAULT FALSE,
@@ -168,5 +178,53 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
     INDEX idx_last_active (last_active_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Journey Conversation History
+CREATE TABLE IF NOT EXISTS journey_conversation (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    session_id VARCHAR(64) NOT NULL,
+    role VARCHAR(16) NOT NULL,
+    content TEXT NOT NULL,
+    personality VARCHAR(64),
+    emotion VARCHAR(64),
+    tone VARCHAR(64),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_journey_conv_session (session_id),
+    INDEX idx_journey_conv_session_created (session_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Journey Game State
+CREATE TABLE IF NOT EXISTS journey_state (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    session_id VARCHAR(64) NOT NULL,
+    user_role VARCHAR(64) DEFAULT 'disciple',
+    current_stage VARCHAR(32),
+    progress INT DEFAULT 0,
+    karma INT DEFAULT 0,
+    companions JSON,
+    chapter INT DEFAULT 1,
+    level_id INT DEFAULT 1,
+    stage_data JSON,
+    knowledge_cards JSON,
+    achievements JSON,
+    cleared_chapters JSON,
+    is_active TINYINT(1) DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_journey_state_session (session_id),
+    INDEX idx_journey_state_session_active (session_id, is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Journey Persona Corpus (Milvus data mirror for debugging)
+CREATE TABLE IF NOT EXISTS journey_persona (
+    id VARCHAR(64) PRIMARY KEY,
+    chapter INT NOT NULL,
+    speaker VARCHAR(64),
+    embedding_text VARCHAR(4096),
+    meta_json TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- 导入种子数据
+SET FOREIGN_KEY_CHECKS=0;
 SOURCE scripts/seed_data.sql;
+SET FOREIGN_KEY_CHECKS=1;

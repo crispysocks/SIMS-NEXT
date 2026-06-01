@@ -8,6 +8,13 @@ class StudentPortrait(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     student_id = Column(Integer, nullable=False, index=True, unique=True)
+    learning_type = Column(String(20), nullable=True)  # 稳定型, 波动型, 退步型
+    science_ability = Column(String(10), nullable=True)
+    english_ability = Column(String(10), nullable=True)
+    improvement_potential = Column(String(10), nullable=True)
+    current_tier = Column(String(20), nullable=True)
+    target_tier = Column(String(20), nullable=True)
+    risk_tags = Column(Text, nullable=True)  # JSON string
     overall_score = Column(Float, nullable=False, default=0.0)
     subject_strengths = Column(Text, nullable=True)  # JSON string
     subject_weaknesses = Column(Text, nullable=True)  # JSON string

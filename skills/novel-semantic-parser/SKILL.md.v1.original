@@ -1,0 +1,100 @@
+---
+name: novel-preprocess
+description: 将小说文本结构化为书→章回→场景→对话格式。Use when用户要求预处理小说、按schema格式分析章回/场景/对话。
+---
+
+# 小说语义结构化预处理
+
+## 目标
+将小说文本按schema格式结构化输出。
+
+## Schema格式
+
+```json
+{
+  "title": "书名",
+  "author": "作者",
+  "chapters": [{
+    "id": 1,
+    "title": "章节标题",
+    "scenes": [{
+      "id": 1,
+      "summary": "场景摘要（≤50字）",
+      "dialogues": [
+        {"speaker": "说话人", "content": "完整原文"},
+        {"speaker": "旁白", "content": "叙述或无明确说话人的内容"}
+      ]
+    }]
+  }]
+}
+```
+
+## 语义规则
+
+### speaker确定
+- **有明确说话人**（如"二仙师齐憨笑道：'善哉'"）→ speaker取"二仙师"，content保留完整原文
+- **叙述性文字/无明确说话人** → speaker填"旁白"，content为整段叙述
+- 每句独立对话单独成一段
+
+### scene划分
+按场景/地点变化切分（如：甄家→葫芦庙→贾雨村书房）
+
+### content要求
+必须保留完整原文，包括动作、神态描写
+
+---
+
+## 工作流程
+
+### 阶段1：侦查（Scout）
+1. 启动侦查agent，传入小说总文本和chunk_size=1000
+2. 侦查agent对每个chunk（n*1000±200范围）分析最后一个章节断点
+3. 返回每个chunk的char_range
+4. 将结果持久化到状态文件`progress.json`
+
+### 阶段2：并行语义分析
+1. 主agent读取状态文件，分配待处理的chunks
+2. 最多8个并行子agent，每个子agent只负责一个chunk
+3. 主agent给子agent的初始提示词包含：
+   - chunk的char_range
+   - 如何按schema语义分析提取结构化信息
+   - 输出文件名格式：`chunk_第N章_结果.json`
+   - 如何更新状态文件（报告任务完成）
+4. 子agent完成分析后保存结果到单独文件，并更新状态文件
+
+### 阶段3：合并
+1. 主agent检测所有chunk状态为done
+2. 汇总所有chunk结果，拼接为完整的小说结构化JSON
+3. 输出最终文件：`{书名}_预处理结果.json`
+
+## 状态文件格式（progress.json）
+
+```json
+{
+  "novel": "红楼梦",
+  "total_chars": 80949,
+  "chunk_size": 1000,
+  "chunks": [
+    {
+      "chunk_id": 0,
+      "char_range": [0, 856],
+      "boundary_checked": {"range": [800, 1200], "last_chapter_break": {"position": 856, "chapter_num": 1}},
+      "status": "pending",
+      "assigned_agent": null,
+      "output_file": null
+    }
+  ],
+  "merge_status": "pending"
+}
+```
+
+## 输出文件命名
+- 子agent输出：`chunk_第{N}章_结果.json`
+- 最终合并：`{书名}_预处理结果.json`
+
+## 快速开始
+
+1. 用户指定小说文件和schema
+2. 调用此skill，启动侦查agent
+3. 等待侦查完成后，主agent分发并行任务
+4. 所有子agent完成后自动合并

@@ -75,3 +75,98 @@ CREATE TABLE IF NOT EXISTS users (
     INDEX idx_username (username),
     INDEX idx_username_deleted (username, is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- High Schools Table (升学预测模块)
+CREATE TABLE IF NOT EXISTS high_schools (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    school_name VARCHAR(100) NOT NULL,
+    school_level VARCHAR(10) NOT NULL COMMENT 'L1, L2, L3, L4',
+    region VARCHAR(50) NOT NULL,
+    annual_admission_count INT NOT NULL,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_school_name (school_name),
+    INDEX idx_region (region)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Admission Score Lines Table (升学预测模块)
+CREATE TABLE IF NOT EXISTS admission_score_lines (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    school_id INT NOT NULL,
+    year INT NOT NULL,
+    admission_score INT NOT NULL,
+    admission_rank INT NOT NULL,
+    student_count INT NOT NULL,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (school_id) REFERENCES high_schools(id),
+    INDEX idx_school_year (school_id, year)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Score Rank Lines Table (升学预测模块)
+CREATE TABLE IF NOT EXISTS score_rank_lines (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    year INT NOT NULL,
+    region VARCHAR(50) NOT NULL,
+    score_min INT NOT NULL,
+    score_max INT NOT NULL,
+    rank_min INT NOT NULL,
+    rank_max INT NOT NULL,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at DATETIME,
+    INDEX idx_year_region (year, region)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Exam Records Table (升学预测模块)
+CREATE TABLE IF NOT EXISTS exam_records (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL,
+    student_no VARCHAR(20) NOT NULL,
+    exam_name VARCHAR(100) NOT NULL,
+    subject VARCHAR(50) NOT NULL,
+    score INT NOT NULL,
+    ranking INT COMMENT '单科排名',
+    total_score INT COMMENT '本次考试总分',
+    total_ranking INT COMMENT '本次考试总分排名',
+    exam_time DATETIME NOT NULL,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES students(id),
+    INDEX idx_student_no (student_no),
+    INDEX idx_exam_time (exam_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Student Portraits Table (升学预测模块)
+CREATE TABLE IF NOT EXISTS student_portraits (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL UNIQUE,
+    overall_score FLOAT NOT NULL DEFAULT 0.0,
+    subject_strengths TEXT COMMENT 'JSON - 优势学科',
+    subject_weaknesses TEXT COMMENT 'JSON - 弱势学科',
+    trend VARCHAR(20) COMMENT 'rising, stable, declining',
+    risk_level VARCHAR(20) COMMENT 'low, medium, high',
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES students(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Chat Sessions Table (升学预测模块)
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL,
+    messages TEXT NOT NULL DEFAULT '[]',
+    message_count INT DEFAULT 0,
+    last_active_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_student_id (student_id),
+    INDEX idx_last_active (last_active_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 导入种子数据
+SOURCE scripts/seed_data.sql;

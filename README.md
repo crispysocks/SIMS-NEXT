@@ -1,6 +1,6 @@
 # SIMS-NEXT 智能教育平台
 
-基于 FastAPI + React 构建的 K12 学校学生信息管理系统，支持学生、教师、班级和成绩的完整 CRUD 操作。
+基于 FastAPI + React 构建的 K12 学校学生信息管理系统，支持学生、教师、班级和成绩的完整 CRUD 操作，并提供升学预测 AI 辅助和 AI 助教功能。
 
 ## 功能特性
 
@@ -9,6 +9,8 @@
 - **教师管理** - 教师信息的增删改查，支持按工号、姓名搜索
 - **班级管理** - 班级信息的增删改查，班主任唯一约束
 - **成绩考核** - 成绩录入与查询，支持按学号、考试名称、学生姓名筛选
+- **升学预测** - 基于学生成绩的录取概率预测、高校推荐、风险评估
+- **AI 助教** - 智能教学分析助手，提供学生成绩分析、知识点对比、趋势追踪
 
 ## 技术栈
 
@@ -46,9 +48,39 @@ SIMS-NEXT/
 │   │   ├── teacher.py       # 教师路由
 │   │   ├── class_router.py  # 班级路由
 │   │   └── score_router.py  # 成绩路由
+│   ├── agent/               # AI 助教模块
+│   │   ├── api/v1/          # AI 助教 API 路由
+│   │   ├── core/            # 核心逻辑
+│   │   ├── repositories/    # 数据访问
+│   │   ├── services/        # 业务逻辑
+│   │   └── mock/            # Mock 数据
+│   ├── predict/             # 升学预测模块
+│   │   ├── api/v1/          # 预测 API 路由
+│   │   │   ├── predict_router.py   # 预测路由
+│   │   │   ├── admission_router.py # 录取线路由
+│   │   │   └── advice_router.py    # 建议路由
+│   │   ├── models/          # ORM 模型
+│   │   │   ├── admission_line.py   # 录取分数线
+│   │   │   ├── chat_session.py     # 聊天会话
+│   │   │   ├── exam_record.py     # 考试成绩
+│   │   │   ├── high_school.py      # 高中
+│   │   │   ├── score_rank_line.py  # 分数段位次
+│   │   │   └── student_portrait.py # 学生画像
+│   │   ├── repositories/     # 数据访问层
+│   │   ├── schemas/         # Pydantic schemas
+│   │   ├── services/        # 业务逻辑层
+│   │   │   ├── chat_service.py      # 聊天服务
+│   │   │   ├── portrait_service.py  # 画像服务
+│   │   │   ├── prediction_service.py # 预测服务
+│   │   │   ├── risk_service.py      # 风险评估
+│   │   │   ├── score_line_service.py # 分数线服务
+│   │   │   ├── simulation_service.py # 模拟服务
+│   │   │   └── trace_service.py    # 追踪服务
+│   │   └── ml/              # 机器学习模块
 │   ├── core/                # 核心配置
 │   │   ├── config.py        # 应用配置
-│   │   └── database.py      # 数据库连接
+│   │   ├── database.py      # 数据库连接
+│   │   └── seed.py          # 数据初始化
 │   ├── models/              # ORM 模型
 │   │   ├── user.py         # 用户模型
 │   │   ├── student.py
@@ -78,13 +110,16 @@ SIMS-NEXT/
 │   │   │   ├── Students.tsx
 │   │   │   ├── Teachers.tsx
 │   │   │   ├── Classes.tsx
-│   │   │   └── Scores.tsx
+│   │   │   ├── Scores.tsx
+│   │   │   ├── Prediction.tsx  # 升学预测
+│   │   │   └── Chat.tsx       # AI 助教
 │   │   ├── stores/          # zustand 状态管理
 │   │   │   ├── authStore.ts
 │   │   │   ├── studentStore.ts
 │   │   │   ├── teacherStore.ts
 │   │   │   ├── classStore.ts
-│   │   │   └── scoreStore.ts
+│   │   │   ├── scoreStore.ts
+│   │   │   └── predictionStore.ts
 │   │   ├── lib/             # 工具函数
 │   │   │   ├── api.ts       # API 封装
 │   │   │   └── utils.ts
@@ -96,7 +131,8 @@ SIMS-NEXT/
 │   ├── PRD.md              # 需求文档
 │   └── superpowers/        # 开发规范文档
 ├── scripts/
-│   └── create_tables.sql   # 数据库建表脚本
+│   ├── create_tables.sql   # 数据库建表脚本
+│   └── seed_data.sql      # 种子数据
 ├── pyproject.toml          # 后端项目配置
 ├── .env.example           # 环境变量示例
 └── README.md
@@ -120,8 +156,8 @@ uv sync
 cp .env.example .env
 # 编辑 .env 修改数据库连接配置
 
-# 初始化数据库
-mysql -u root -p -e "source scripts/create_tables.sql"
+# 初始化数据库（建表 + 种子数据）
+mysql -u root -p sims < scripts/create_tables.sql
 
 # 启动后端服务
 uv run uvicorn app.main:app --reload --port 8000
@@ -193,6 +229,28 @@ npm run dev
 | PUT | /scores/{score_id} | 修改成绩 |
 | DELETE | /scores/{score_id} | 删除成绩 |
 
+### 升学预测 `/api/v1`
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /predict/admission | 预测录取概率 |
+| POST | /predict/school-recommend | 高校推荐 |
+| POST | /predict/risk-assessment | 风险评估 |
+| GET | /admission/schools | 获取高校列表 |
+| GET | /admission/schools/{id}/lines | 获取高校录取分数线 |
+| POST | /advice/strategy | 志愿策略建议 |
+| POST | /chat/send | 发送聊天消息 |
+
+### AI 助教 `/api/v1/agent`
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /agent/students | 获取学生列表 |
+| POST | /agent/chat | AI 聊天 |
+| POST | /agent/analysis | 分析请求 |
+| POST | /agent/report | 生成报告 |
+| POST | /agent/mock/init | 初始化 Mock 数据 |
+
 ## 开发指南
 
 ### 后端添加新模块
@@ -250,6 +308,16 @@ npm run dev
 | 变量名 | 默认值 | 说明 |
 |--------|--------|------|
 | `API_PREFIX` | /api/v1 | API 路由前缀 |
+
+### LLM 配置（AI 助教）
+
+| 变量名 | 默认值 | 说明 |
+|--------|--------|------|
+| `LLM_BASE_URL` | https://api.deepseek.com/v1 | LLM API 地址 |
+| `LLM_API_KEY` | - | API 密钥 |
+| `LLM_MODEL` | deepseek-chat | 模型名称 |
+| `LLM_MAX_RETRIES` | 2 | 最大重试次数 |
+| `LLM_TIMEOUT` | 60 | 超时时间（秒） |
 
 ### 前端配置
 

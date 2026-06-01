@@ -3,7 +3,7 @@ import time
 from typing import Optional, Generator
 import httpx
 from sqlalchemy.orm import Session
-from app.core.config import MINIMAX_API_KEY, MINIMAX_MODEL
+from app.core.config import LLM_API_KEY, LLM_MODEL
 from app.predict.services.prediction_service import PredictionService
 from app.predict.services.portrait_service import PortraitService
 from app.predict.services.risk_service import RiskService
@@ -365,7 +365,7 @@ class ChatService:
         self.session_repo.append_message(active_session.id, "assistant", response_text)
         self.session_repo.increment_count(active_session.id)
 
-        # 7. 流式返回
+               # 7. 流式返回
         for chunk in self._stream_text(response_text):
             yield chunk
 
@@ -374,7 +374,7 @@ class ChatService:
     @traceable("ChatService")
     def _call_llm(self, prompt: str, message_count: int) -> str:
         """调用MiniMax API"""
-        if not MINIMAX_API_KEY:
+        if not LLM_API_KEY:
             raise Exception("MiniMax API Key not configured")
 
         messages = [
@@ -390,12 +390,12 @@ class ChatService:
         with httpx.Client(timeout=30.0) as client:
             response = client.post(
                 "https://api.minimax.chat/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {MINIMAX_API_KEY}",
+                               headers={
+                    "Authorization": f"Bearer {LLM_API_KEY}",
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": MINIMAX_MODEL,
+                    "model": LLM_MODEL,
                     "messages": messages,
                 }
             )

@@ -9,6 +9,7 @@ const LoginPage = lazy(() => import('@/portals/auth/pages/login-page').then((m) 
 const StudentShell = lazy(() => import('@/portals/student/layout/student-shell').then((m) => ({ default: m.StudentShell })));
 const TeacherShell = lazy(() => import('@/portals/teacher/layout/teacher-shell').then((m) => ({ default: m.TeacherShell })));
 const StudentDashboard = lazy(() => import('@/portals/student/pages/dashboard').then((m) => ({ default: m.StudentDashboard })));
+const Prediction = lazy(() => import('@/portals/student/pages/prediction').then((m) => ({ default: m.Prediction })));
 const TeacherDashboard = lazy(() => import('@/portals/teacher/pages/dashboard').then((m) => ({ default: m.TeacherDashboard })));
 const Students = lazy(() => import('@/portals/teacher/pages/students').then((m) => ({ default: m.Students })));
 const Classes = lazy(() => import('@/portals/teacher/pages/classes').then((m) => ({ default: m.Classes })));
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/student/dashboard" replace /> },
       { path: 'dashboard', element: withSuspense(<StudentDashboard />) },
+      { path: 'prediction', element: withSuspense(<Prediction />) },
     ],
   },
   {

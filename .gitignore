@@ -226,6 +226,8 @@ docs/superpowers/
 # reference
 reference
 
-.claude
+# Project specific
+logs/
+frontend/node_modules/
 
-.env.example
+.claude

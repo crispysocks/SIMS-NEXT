@@ -1,6 +1,6 @@
 # SIMS-NEXT
 
-K12 学生信息管理系统 + AI 教学分析 + AI 智能辅导 + 四大名著智能助手。
+K12 学生信息管理系统 + AI 教学分析 + 升学预测 + AI 智能辅导 + 四大名著智能助手。
 
 ## 项目组成
 
@@ -8,12 +8,13 @@ K12 学生信息管理系统 + AI 教学分析 + AI 智能辅导 + 四大名著�
 |------|------|
 | **SIMS 教务管理** | 学生/教师/班级/成绩 CRUD，JWT 认证 |
 | **AI 教学分析 Agent** | 学情诊断、知识点薄弱点定位、分层教学建议 |
+| **升学预测** | ML 驱动的学生画像、升学概率预测、风险预警、分数提升模拟与 AI 学习建议 |
 | **AI 智能辅导** | 基于贝叶斯掌握度追踪的自适应辅导系统，支持数学和英语双学科 |
 | **四大名著助手** | 基于 PageIndex + Milvus 的 RAG 问答 + 西游记取经文字游戏 |
 
 ## 技术栈
 
-**后端:** FastAPI · SQLAlchemy · MySQL · OpenAI SDK · PageIndex · Milvus · PyJWT · SymPy · scikit-learn
+**后端:** FastAPI · SQLAlchemy · MySQL · OpenAI SDK · PageIndex · Milvus · PyJWT · SymPy · scikit-learn · Anthropic SDK
 
 **前端:** React 18 · Vite · TypeScript · Tailwind CSS 4 · Shadcn/ui · Zustand
 
@@ -65,6 +66,13 @@ SIMS-NEXT/
 │   │   ├── models/          # 知识点/考试/分析数据模型
 │   │   ├── services/        # 分析引擎（趋势/分层/薄弱点等）
 │   │   └── tools/           # Agent 工具定义
+│   ├── predict/             # 升学预测子系统
+│   │   ├── api/v1/          # 预测 API（升学预测/分数线/AI建议）
+│   │   ├── ml/              # ML 模型训练与加载
+│   │   ├── models/          # 考试/高中/分数线/学生画像 ORM
+│   │   ├── repositories/    # 数据访问层
+│   │   ├── schemas/         # Pydantic 请求/响应模型
+│   │   └── services/        # 预测/画像/风险/模拟/聊天服务
 │   ├── tutor/               # AI 智能辅导引擎
 │   │   ├── core/            # 核心抽象层（掌握度、推荐、会话）
 │   │   ├── subjects/        # 学科实现（math、english）
@@ -91,13 +99,14 @@ SIMS-NEXT/
 │   ├── pages/               # 页面组件
 │   │   ├── NovelsChat.tsx   # 四大名著统一聊天页
 │   │   ├── Chat.tsx         # AI 助教聊天页
+│   │   ├── Prediction.tsx   # 升学预测页面
 │   │   └── Tutor.tsx        # AI 辅导页面
 │   ├── stores/              # Zustand 状态管理
 │   ├── components/ui/       # Shadcn/ui 组件
 │   └── lib/                 # API 封装 & 工具函数
-├── scripts/                 # 索引构建脚本 & SQL
+├── scripts/                 # 数据库初始化、索引构建 & LLM 工具脚本
 ├── workspace/novels/        # PageIndex 索引文件
-├── docs/                    # PRD & 技术文档
+├── docs/                    # PRD、技术文档 & AI 预测模块介绍
 └── pyproject.toml
 ```
 
@@ -136,6 +145,19 @@ SIMS-NEXT/
 | POST | /agent/report | 教学报告 |
 | GET | /agent/students | 班级学生列表 |
 
+### 升学预测 `/api/v1`
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /predict/{student_id} | 学生升学概率预测（冲刺/稳定/保底） |
+| GET | /predict/{student_id}/score | 获取学生最近考试总分 |
+| GET | /predict/{student_id}/portrait | 学生画像分析（学习类型/优势/短板） |
+| GET | /predict/{student_id}/risk | 风险预警（波动/下滑科目标签） |
+| GET | /predict/{student_id}/simulation | 分数提升模拟（What-if 分析） |
+| GET | /admission-line/{school_id} | 高中录取分数线趋势预测 |
+| GET | /advice/{student_id} | AI 学习建议（分科针对性建议） |
+| POST | /advice/{student_id}/chat | 升学规划对话（SSE 流式） |
+
 ### AI 智能辅导 `/api/v1/tutor`
 
 | 方法 | 路径 | 说明 |
@@ -165,6 +187,8 @@ SIMS-NEXT/
 | MILVUS_HOST / PORT | localhost / 19530 | Milvus 向量数据库 |
 | EMBED_MODEL | text-embedding-3-small | Embedding 模型 |
 | RAG_ENABLED | false | AI 辅导 RAG 管道开关 |
+| RAG_RETRIEVER_MODE | hybrid | RAG 检索模式（hybrid / vector / keyword） |
+| RAG_EMBEDDING_MODEL | all-MiniLM-L6-v2 | RAG 本地 Embedding 模型 |
 
 ## 许可证
 

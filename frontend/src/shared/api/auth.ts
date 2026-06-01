@@ -9,6 +9,7 @@ export interface LoginPayload {
 
 export interface LoginResponse {
   id: string;
+  userId: number;
   name: string;
   role: Role;
 }
@@ -33,6 +34,7 @@ export const authApi = {
     // Backend returns { access_token, user: { id, username, role } }
     return {
       id: String(data.user.id),
+      userId: data.user.id,
       name: data.user.username, // No separate "name" field in DB; use username
       role: data.user.role as Role,
     };

@@ -144,6 +144,7 @@ export function NovelsChat() {
                 });
               }
             } else if (data.type === 'tool_call') {
+              // 工具调用仅记录到内部状态，不展示
               setMessages((prev) => [...prev, { role: 'tool', content: `Calling: ${data.tool}`, toolName: data.tool }]);
             } else if (data.type === 'tool_result') {
               const resultPreview = typeof data.result === 'string'
@@ -190,25 +191,17 @@ export function NovelsChat() {
           </div>
         )}
 
-        {messages.map((msg, idx) => (
-          <div key={idx}>
-            {msg.role === 'tool' ? (
-              <div className="flex justify-center">
-                <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                  {msg.toolName}: {msg.content.slice(0, 100)}
-                </Badge>
+        {messages
+          .filter((msg) => msg.role !== 'tool')
+          .map((msg, idx) => (
+            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-foreground'
+              }`}>
+                <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
               </div>
-            ) : (
-              <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                  msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-foreground'
-                }`}>
-                  <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
+            </div>
+          ))}
 
         {journey.gameActive && (
           <div className="space-y-3 mx-4">

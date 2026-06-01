@@ -3,7 +3,7 @@ import { useChatStore } from '@/stores/chatStore';
 import type { SSEEvent } from '@/stores/chatStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+
 import { cn } from '@/lib/utils';
 import {
   Plus,
@@ -70,74 +70,6 @@ function SessionSidebar() {
           ))}
         </div>
       </div>
-    </div>
-  );
-}
-
-// ── Tool Call Summary (collapsed) ──────────────
-
-const TOOL_LABELS: Record<string, string> = {
-  get_kp_mastery_rates: '知识点掌握率',
-  get_kp_dependencies: '前置依赖链',
-  get_tiered_students: '四层分层',
-  get_student_trend: '学生趋势',
-  get_advanced_students: '培优名单',
-  get_remedial_students: '补差名单',
-  get_class_trend_summary: '班级趋势',
-  get_enrollment_forecast: '升学预估',
-  get_class_rank_summary: '排名汇总',
-  get_question_quality: '题目质量',
-};
-
-function ThinkingStatus({ events }: { events: SSEEvent[] }) {
-  const [expanded, setExpanded] = useState(false);
-
-  const toolCalls = events.filter((e) => e.type === 'tool_start');
-  const toolResults = events.filter((e) => e.type === 'tool_end');
-  const hasDataCards = events.some((e) => e.type === 'data_card');
-  const isDone = events.some((e) => e.type === 'done');
-
-  if (isDone) return null;
-
-  let phase = '正在思考...';
-  if (toolCalls.length > 0 && toolResults.length < toolCalls.length) phase = '正在查询数据...';
-  else if (toolResults.length > 0 && !hasDataCards) phase = '数据分析中...';
-  else if (hasDataCards) phase = '正在生成教学建议...';
-
-  return (
-    <div className="mb-3">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition-colors"
-      >
-        <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />
-        <span>{phase}</span>
-        {toolCalls.length > 0 && (
-          <Badge variant="secondary" className="text-xs">{toolCalls.length} 次查询</Badge>
-        )}
-        {toolCalls.length > 0 && (
-          expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
-        )}
-      </button>
-
-      {expanded && (
-        <div className="mt-2 ml-5 space-y-1 text-xs text-slate-400">
-          {toolCalls.map((tc, i) => {
-            const result = toolResults.find((r) => r.tool === tc.tool);
-            return (
-              <div key={i} className="flex items-center gap-2">
-                <span className="text-indigo-400 font-mono">{tc.tool}</span>
-                <span>—</span>
-                {result ? (
-                  <span className={result.ok ? '' : 'text-red-400'}>{result.summary}</span>
-                ) : (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
@@ -298,7 +230,6 @@ function ChatArea() {
     );
   }
 
-  const toolEvents = streamEvents.filter((e) => e.type === 'tool_start' || e.type === 'tool_end');
   const dataCards = streamEvents.filter((e) => e.type === 'data_card');
 
   return (
@@ -316,7 +247,12 @@ function ChatArea() {
           {/* Streaming */}
           {streaming && (
             <div className="mb-4">
-              <ThinkingStatus events={streamEvents} />
+              {!streamEvents.some((e) => e.type === 'done') && (
+                <div className="flex items-center gap-2 text-sm text-slate-500 mb-3">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-500" />
+                  <span>正在思考...</span>
+                </div>
+              )}
 
               {/* Data cards during stream */}
               {dataCards.map((evt, i) => (

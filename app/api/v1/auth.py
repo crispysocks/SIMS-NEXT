@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.user import User
-from app.schemas.auth import UserRegister, UserLogin, Token, TokenData
+from app.schemas.auth import UserRegister, UserLogin, Token, TokenData, UserInfo
 from app.services.auth_service import verify_password, get_password_hash, create_access_token, decode_access_token
 
 router = APIRouter(prefix="/auth", tags=["认证"])
@@ -44,7 +44,7 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)) -> Token:
     db.refresh(new_user)
     # 生成token
     access_token = create_access_token(data={"sub": new_user.username})
-    return Token(access_token=access_token)
+    return Token(access_token=access_token, user=UserInfo(id=new_user.id, username=new_user.username, role=new_user.role))
 
 @router.post("/login", response_model=Token)
 def login(user_data: UserLogin, db: Session = Depends(get_db)) -> Token:
@@ -56,4 +56,4 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)) -> Token:
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token = create_access_token(data={"sub": user.username})
-    return Token(access_token=access_token)
+    return Token(access_token=access_token, user=UserInfo(id=user.id, username=user.username, role=user.role))

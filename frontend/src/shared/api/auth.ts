@@ -7,16 +7,34 @@ export interface LoginPayload {
   role: Role;
 }
 
+export interface LoginResponse {
+  id: string;
+  name: string;
+  role: Role;
+}
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+
 export const authApi = {
-  async login(payload: LoginPayload) {
-    // TODO: real auth endpoint. For now, mock.
-    if (!payload.account || !payload.password) {
-      throw new Error('请填写账号和密码');
+  async login(payload: LoginPayload): Promise<LoginResponse> {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: payload.account,
+        password: payload.password,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: '登录失败' }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
     }
+    const data = await res.json();
+    // Backend returns { access_token, user: { id, username, role } }
     return {
-      id: '1',
-      name: payload.role === 'student' ? '学生' : '老师',
-      role: payload.role,
+      id: String(data.user.id),
+      name: data.user.username, // No separate "name" field in DB; use username
+      role: data.user.role as Role,
     };
   },
 };

@@ -14,19 +14,59 @@ export interface Question {
   learning_objectives: string[];
 }
 
-// Backend has no `options` field on the question. The UI synthesizes an
+// 1:1 mirror of backend `AnswerResult` (app/schemas/tutor.py). The backend
+// does not have an `options` field on the question. The UI synthesizes an
 // A/B/C/D option set so the existing multiple-choice QuestionCard still
 // renders. The chosen option letter is sent as `student_answer` to the
 // backend, which compares it to the actual text answer returned in
-// `AnswerResult.correct_answer`.
+// `correct_answer`.
+export interface TutorResponseOut {
+  explanation: string;
+  hint: string;
+  encouragement: string;
+}
+
+export interface DiagnosisResultOut {
+  error_types: string[];
+  diagnosis_labels: string[];
+  confidence: number;
+}
+
+export interface RemediationPlanOut {
+  recommended_topics: string[];
+  retrieval_tags: string[];
+}
+
+export interface TutoringExplanationOut {
+  what_is_wrong: string;
+  why_it_is_wrong: string;
+  how_to_fix: string;
+  similar_examples: string[];
+  retrieved_context: string;
+  generation_source?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+export interface KnowledgeSnippetOut {
+  id: string;
+  title: string;
+  topic: string;
+  tags: string[];
+  diagnosis_labels: string[];
+  score: number;
+  metadata?: Record<string, unknown>;
+}
+
 export interface SubmitResult {
   is_correct: boolean;
   correct_answer: string;
   student_answer: string;
   topic: string;
-  explanation: string;
-  hint?: string | null;
-  encouragement?: string | null;
+  tutor_response: TutorResponseOut | null;
+  diagnosis: DiagnosisResultOut | null;
+  remediation: RemediationPlanOut | null;
+  explanation: TutoringExplanationOut | null;
+  retrieved_snippets: KnowledgeSnippetOut[];
 }
 
 export interface HintResponse {

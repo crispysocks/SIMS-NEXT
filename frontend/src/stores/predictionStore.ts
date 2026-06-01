@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/shared/stores/auth-store';
 
 export interface Student {
   id: number;
@@ -74,7 +73,7 @@ interface PredictionState {
   clearSimulation: () => void;
 }
 
-export const usePredictionStore = create<PredictionState>((set, get) => ({
+export const usePredictionStore = create<PredictionState>()((set, get) => ({
   students: [],
   selectedStudent: null,
   currentScore: 0,
@@ -92,10 +91,8 @@ export const usePredictionStore = create<PredictionState>((set, get) => ({
   fetchStudents: async () => {
     set({ loading: true, error: null });
     try {
-      const token = useAuthStore.getState().token;
       const data = await api.get<{ items: Student[]; total: number }>(
-        '/students?page=1&page_size=100',
-        token || undefined
+        '/students?page=1&page_size=100'
       );
       set({ students: data.items, loading: false });
     } catch (err) {
@@ -119,13 +116,12 @@ export const usePredictionStore = create<PredictionState>((set, get) => ({
   fetchPredictionData: async (studentId: number, currentScore?: number) => {
     set({ loading: true, error: null });
     try {
-      const token = useAuthStore.getState().token;
       const url = currentScore !== undefined
         ? `/predict/${studentId}?current_score=${currentScore}`
         : `/predict/${studentId}`;
       const [prediction, risk] = await Promise.all([
-        api.get<PredictionResult>(url, token || undefined),
-        api.get<RiskWarning>(`/predict/${studentId}/risk`, token || undefined),
+        api.get<PredictionResult>(url),
+        api.get<RiskWarning>(`/predict/${studentId}/risk`),
       ]);
       set({ prediction, risk, currentScore: prediction.current_score, loading: false });
     } catch (err) {
@@ -143,7 +139,6 @@ export const usePredictionStore = create<PredictionState>((set, get) => ({
     const newMessages = [...chatMessages, { role: 'user', content: message }];
     set({ chatMessages: newMessages, chatOpen: true });
 
-    const token = useAuthStore.getState().token;
     const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
     const controller = new AbortController();
 
@@ -154,7 +149,6 @@ export const usePredictionStore = create<PredictionState>((set, get) => ({
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({ message }),
       signal: controller.signal,
@@ -265,9 +259,8 @@ export const usePredictionStore = create<PredictionState>((set, get) => ({
 
     set({ simulationLoading: true, error: null });
     try {
-      const token = useAuthStore.getState().token;
       const url = `/predict/${studentId}?current_score=${parseInt(simulationScore)}`;
-      const result = await api.get<PredictionResult>(url, token || undefined);
+      const result = await api.get<PredictionResult>(url);
       set({ simulationResult: result, simulationLoading: false });
     } catch (err) {
       set({ error: err instanceof Error ? err.message : '模拟失败', simulationLoading: false });

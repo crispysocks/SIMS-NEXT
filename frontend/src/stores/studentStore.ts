@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/shared/stores/auth-store';
 
 export interface Student {
   id: number;
@@ -37,7 +36,7 @@ interface StudentState {
   deleteStudent: (student_no: string) => Promise<void>;
 }
 
-export const useStudentStore = create<StudentState>((set, get) => ({
+export const useStudentStore = create<StudentState>()((set, get) => ({
   students: [],
   total: 0,
   page: 1,
@@ -53,44 +52,49 @@ export const useStudentStore = create<StudentState>((set, get) => ({
     const { searchName, searchStudentNo, page, pageSize } = get();
     set({ loading: true, error: null });
     try {
-      const token = useAuthStore.getState().token;
       const params = new URLSearchParams({
         page: String(page),
         page_size: String(pageSize),
       });
       if (searchName) params.append('name', searchName);
       if (searchStudentNo) params.append('student_no', searchStudentNo);
-      const data = await api.get<{ items: Student[]; total: number }>(`/students?${params}`, token);
+      const data = await api.get<{ items: Student[]; total: number }>(`/students?${params}`);
       set({ students: data.items, total: data.total, loading: false });
     } catch (err) {
       set({ error: err instanceof Error ? err.message : '获取学生列表失败', loading: false });
     }
   },
 
-  setPage: (page) => set({ page }, () => get().fetchStudents()),
-  setSearchName: (searchName) => set({ searchName, page: 1 }, () => get().fetchStudents()),
-  setSearchStudentNo: (searchStudentNo) => set({ searchStudentNo, page: 1 }, () => get().fetchStudents()),
+  setPage: (page) => {
+    set({ page });
+    get().fetchStudents();
+  },
+  setSearchName: (searchName) => {
+    set({ searchName, page: 1 });
+    get().fetchStudents();
+  },
+  setSearchStudentNo: (searchStudentNo) => {
+    set({ searchStudentNo, page: 1 });
+    get().fetchStudents();
+  },
 
   openModal: (student) => set({ modalOpen: true, editingStudent: student || null }),
   closeModal: () => set({ modalOpen: false, editingStudent: null }),
 
   createStudent: async (data) => {
-    const token = useAuthStore.getState().token;
-    await api.post('/students', data, token);
+    await api.post('/students', data);
     await get().fetchStudents();
     get().closeModal();
   },
 
   updateStudent: async (student_no, data) => {
-    const token = useAuthStore.getState().token;
-    await api.put(`/students/${student_no}`, data, token);
+    await api.put(`/students/${student_no}`, data);
     await get().fetchStudents();
     get().closeModal();
   },
 
   deleteStudent: async (student_no) => {
-    const token = useAuthStore.getState().token;
-    await api.delete(`/students/${student_no}`, token);
+    await api.delete(`/students/${student_no}`);
     await get().fetchStudents();
   },
 }));

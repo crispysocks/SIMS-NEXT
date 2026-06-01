@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/shared/stores/auth-store';
 
 export interface Class {
   id: number;
@@ -33,7 +32,7 @@ interface ClassState {
   deleteClass: (class_id: number) => Promise<void>;
 }
 
-export const useClassStore = create<ClassState>((set, get) => ({
+export const useClassStore = create<ClassState>()((set, get) => ({
   classes: [],
   total: 0,
   page: 1,
@@ -49,44 +48,49 @@ export const useClassStore = create<ClassState>((set, get) => ({
     const { searchClassNo, searchClassName, page, pageSize } = get();
     set({ loading: true, error: null });
     try {
-      const token = useAuthStore.getState().token;
       const params = new URLSearchParams({
         page: String(page),
         page_size: String(pageSize),
       });
       if (searchClassNo) params.append('class_no', searchClassNo);
       if (searchClassName) params.append('class_name', searchClassName);
-      const data = await api.get<{ items: Class[]; total: number }>(`/classes?${params}`, token);
+      const data = await api.get<{ items: Class[]; total: number }>(`/classes?${params}`);
       set({ classes: data.items, total: data.total, loading: false });
     } catch (err) {
       set({ error: err instanceof Error ? err.message : '获取班级列表失败', loading: false });
     }
   },
 
-  setPage: (page) => set({ page }, () => get().fetchClasses()),
-  setSearchClassNo: (searchClassNo) => set({ searchClassNo, page: 1 }, () => get().fetchClasses()),
-  setSearchClassName: (searchClassName) => set({ searchClassName, page: 1 }, () => get().fetchClasses()),
+  setPage: (page) => {
+    set({ page });
+    get().fetchClasses();
+  },
+  setSearchClassNo: (searchClassNo) => {
+    set({ searchClassNo, page: 1 });
+    get().fetchClasses();
+  },
+  setSearchClassName: (searchClassName) => {
+    set({ searchClassName, page: 1 });
+    get().fetchClasses();
+  },
 
   openModal: (cls) => set({ modalOpen: true, editingClass: cls || null }),
   closeModal: () => set({ modalOpen: false, editingClass: null }),
 
   createClass: async (data) => {
-    const token = useAuthStore.getState().token;
-    await api.post('/classes', data, token);
+    await api.post('/classes', data);
     await get().fetchClasses();
     get().closeModal();
   },
 
   updateClass: async (class_id, data) => {
-    const token = useAuthStore.getState().token;
-    await api.put(`/classes/${class_id}`, data, token);
+    await api.put(`/classes/${class_id}`, data);
     await get().fetchClasses();
     get().closeModal();
   },
 
   deleteClass: async (class_id) => {
-    const token = useAuthStore.getState().token;
-    await api.delete(`/classes/${class_id}`, token);
+    await api.delete(`/classes/${class_id}`);
     await get().fetchClasses();
   },
 }));

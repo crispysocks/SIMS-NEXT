@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/shared/stores/auth-store';
 
 export interface Score {
   id: number;
@@ -36,7 +35,7 @@ interface ScoreState {
   deleteScore: (score_id: number) => Promise<void>;
 }
 
-export const useScoreStore = create<ScoreState>((set, get) => ({
+export const useScoreStore = create<ScoreState>()((set, get) => ({
   scores: [],
   total: 0,
   page: 1,
@@ -53,7 +52,6 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
     const { searchStudentNo, searchExamName, searchStudentName, page, pageSize } = get();
     set({ loading: true, error: null });
     try {
-      const token = useAuthStore.getState().token;
       const params = new URLSearchParams({
         page: String(page),
         page_size: String(pageSize),
@@ -61,38 +59,47 @@ export const useScoreStore = create<ScoreState>((set, get) => ({
       if (searchStudentNo) params.append('student_no', searchStudentNo);
       if (searchExamName) params.append('exam_name', searchExamName);
       if (searchStudentName) params.append('student_name', searchStudentName);
-      const data = await api.get<{ items: Score[]; total: number }>(`/scores?${params}`, token);
+      const data = await api.get<{ items: Score[]; total: number }>(`/scores?${params}`);
       set({ scores: data.items, total: data.total, loading: false });
     } catch (err) {
       set({ error: err instanceof Error ? err.message : '获取成绩列表失败', loading: false });
     }
   },
 
-  setPage: (page) => set({ page }, () => get().fetchScores()),
-  setSearchStudentNo: (searchStudentNo) => set({ searchStudentNo, page: 1 }, () => get().fetchScores()),
-  setSearchExamName: (searchExamName) => set({ searchExamName, page: 1 }, () => get().fetchScores()),
-  setSearchStudentName: (searchStudentName) => set({ searchStudentName, page: 1 }, () => get().fetchScores()),
+  setPage: (page) => {
+    set({ page });
+    get().fetchScores();
+  },
+  setSearchStudentNo: (searchStudentNo) => {
+    set({ searchStudentNo, page: 1 });
+    get().fetchScores();
+  },
+  setSearchExamName: (searchExamName) => {
+    set({ searchExamName, page: 1 });
+    get().fetchScores();
+  },
+  setSearchStudentName: (searchStudentName) => {
+    set({ searchStudentName, page: 1 });
+    get().fetchScores();
+  },
 
   openModal: (score) => set({ modalOpen: true, editingScore: score || null }),
   closeModal: () => set({ modalOpen: false, editingScore: null }),
 
   createScore: async (data) => {
-    const token = useAuthStore.getState().token;
-    await api.post('/scores', data, token);
+    await api.post('/scores', data);
     await get().fetchScores();
     get().closeModal();
   },
 
   updateScore: async (score_id, data) => {
-    const token = useAuthStore.getState().token;
-    await api.put(`/scores/${score_id}`, data, token);
+    await api.put(`/scores/${score_id}`, data);
     await get().fetchScores();
     get().closeModal();
   },
 
   deleteScore: async (score_id) => {
-    const token = useAuthStore.getState().token;
-    await api.delete(`/scores/${score_id}`, token);
+    await api.delete(`/scores/${score_id}`);
     await get().fetchScores();
   },
 }));

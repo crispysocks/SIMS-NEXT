@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/shared/stores/auth-store';
 
 export interface Question {
   id: string;
@@ -118,7 +117,7 @@ interface TutorState {
   clearResult: () => void;
 }
 
-export const useTutorStore = create<TutorState>((set, get) => ({
+export const useTutorStore = create<TutorState>()((set, get) => ({
   currentQuestion: null,
   answerResult: null,
   hint: null,
@@ -131,8 +130,7 @@ export const useTutorStore = create<TutorState>((set, get) => ({
 
   fetchSubject: async () => {
     try {
-      const token = useAuthStore.getState().token;
-      const data = await api.get<SubjectInfo>('/tutor/subject', token);
+      const data = await api.get<SubjectInfo>('/tutor/subject');
       set({ subjectInfo: data });
     } catch (err) {
       console.error('获取学科信息失败:', err);
@@ -141,8 +139,7 @@ export const useTutorStore = create<TutorState>((set, get) => ({
 
   fetchTopics: async () => {
     try {
-      const token = useAuthStore.getState().token;
-      const data = await api.get<TopicInfo>('/tutor/topics', token);
+      const data = await api.get<TopicInfo>('/tutor/topics');
       set({ topicInfo: data });
     } catch (err) {
       console.error('获取主题信息失败:', err);
@@ -151,8 +148,7 @@ export const useTutorStore = create<TutorState>((set, get) => ({
 
   switchSubject: async (subject: string) => {
     try {
-      const token = useAuthStore.getState().token;
-      const data = await api.post<SubjectInfo>('/tutor/subject', { subject }, token);
+      const data = await api.post<SubjectInfo>('/tutor/subject', { subject });
       set({
         subjectInfo: data,
         currentQuestion: null,
@@ -171,8 +167,7 @@ export const useTutorStore = create<TutorState>((set, get) => ({
   fetchQuestion: async () => {
     set({ loading: true, error: null, answerResult: null, hint: null });
     try {
-      const token = useAuthStore.getState().token;
-      const data = await api.get<Question>('/tutor/question', token);
+      const data = await api.get<Question>('/tutor/question');
       set({ currentQuestion: data, loading: false });
     } catch (err) {
       set({ error: err instanceof Error ? err.message : '获取题目失败', loading: false });
@@ -185,8 +180,7 @@ export const useTutorStore = create<TutorState>((set, get) => ({
 
     set({ submitting: true, error: null });
     try {
-      const token = useAuthStore.getState().token;
-      const data = await api.post<AnswerResult>('/tutor/answer', { student_answer: answer }, token);
+      const data = await api.post<AnswerResult>('/tutor/answer', { student_answer: answer });
       set({ answerResult: data, submitting: false });
       // 自动刷新进度
       get().fetchProgress();
@@ -206,8 +200,7 @@ export const useTutorStore = create<TutorState>((set, get) => ({
     if (!currentQuestion) return;
 
     try {
-      const token = useAuthStore.getState().token;
-      const data = await api.post<HintResponse>('/tutor/hint', {}, token);
+      const data = await api.post<HintResponse>('/tutor/hint', {});
       set({ hint: data });
     } catch (err) {
       const msg = err instanceof Error ? err.message : '获取提示失败';
@@ -223,8 +216,7 @@ export const useTutorStore = create<TutorState>((set, get) => ({
 
   fetchProgress: async () => {
     try {
-      const token = useAuthStore.getState().token;
-      const data = await api.get<Progress>('/tutor/progress', token);
+      const data = await api.get<Progress>('/tutor/progress');
       set({ progress: data });
     } catch (err) {
       console.error('获取进度失败:', err);
@@ -233,8 +225,7 @@ export const useTutorStore = create<TutorState>((set, get) => ({
 
   resetSession: async () => {
     try {
-      const token = useAuthStore.getState().token;
-      await api.post('/tutor/reset', {}, token);
+      await api.post('/tutor/reset', {});
       set({
         currentQuestion: null,
         answerResult: null,

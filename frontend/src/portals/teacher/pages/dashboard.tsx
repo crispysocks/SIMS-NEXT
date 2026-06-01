@@ -125,33 +125,44 @@ export function TeacherDashboard() {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="学生总数"
-          value={isLoading ? <Skeleton className="h-7 w-12" /> : overview.studentCount}
-          icon={<Users className="w-5 h-5" />}
-          helpText="本学期"
-        />
-        <StatCard
-          label="班级平均"
-          value={isLoading ? <Skeleton className="h-7 w-16" /> : overview.avgScore}
-          delta="+5.2"
-          trend="up"
-          icon={<TrendingUp className="w-5 h-5" />}
-        />
-        <StatCard
-          label="及格率"
-          value={isLoading ? <Skeleton className="h-7 w-12" /> : overview.passRate}
-          delta="+3%"
-          trend="up"
-          icon={<School className="w-5 h-5" />}
-        />
-        <StatCard
-          label="待关注"
-          value={isLoading ? <Skeleton className="h-7 w-8" /> : overview.atRisk}
-          delta="-1"
-          trend="up"
-          icon={<AlertTriangle className="w-5 h-5" />}
-        />
+        {isLoading ? (
+          <>
+            <StatCard label="学生总数" value="—" icon={<Users className="w-5 h-5" />} helpText="本学期" />
+            <StatCard label="班级平均" value="—" icon={<TrendingUp className="w-5 h-5" />} />
+            <StatCard label="及格率" value="—" icon={<School className="w-5 h-5" />} />
+            <StatCard label="待关注" value="—" icon={<AlertTriangle className="w-5 h-5" />} />
+          </>
+        ) : (
+          <>
+            <StatCard
+              label="学生总数"
+              value={overview.studentCount}
+              icon={<Users className="w-5 h-5" />}
+              helpText="本学期"
+            />
+            <StatCard
+              label="班级平均"
+              value={overview.avgScore}
+              delta="+5.2"
+              trend="up"
+              icon={<TrendingUp className="w-5 h-5" />}
+            />
+            <StatCard
+              label="及格率"
+              value={overview.passRate}
+              delta="+3%"
+              trend="up"
+              icon={<School className="w-5 h-5" />}
+            />
+            <StatCard
+              label="待关注"
+              value={overview.atRisk}
+              delta="-1"
+              trend="up"
+              icon={<AlertTriangle className="w-5 h-5" />}
+            />
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -159,17 +159,18 @@ export function NovelsChat() {
                   if (parsed.choices || parsed.progress !== undefined) {
                     journey.applyGameEvent(parsed);
                   }
-                } catch {}
+                } catch (e) { console.error("Failed to parse game event:", e); }
               }
             } else if (data.type === 'done') {
               break;
             } else if (data.type === 'error') {
               setMessages((prev) => [...prev, { role: 'assistant', content: `Error: ${data.content}` }]);
             }
-          } catch {}
+          } catch (e) { console.error("SSE parse error:", e); }
         }
       }
-    } catch {
+    } catch (e) {
+      console.error("Stream error:", e);
       setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, an error occurred. Please try again.' }]);
     } finally {
       setLoading(false);

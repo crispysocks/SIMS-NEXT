@@ -13,7 +13,6 @@ ACHIEVEMENTS = [
     {"id": "first_step", "name": "初踏取经路", "description": "完成第一章"},
     {"id": "monster_hunter", "name": "降妖初成", "description": "首次成功降服妖怪"},
     {"id": "scholar", "name": "西游学者", "description": "累计解锁5张知识卡片"},
-    {"id": "wise_master", "name": "智者大师", "description": "连续3次选择正确"},
     {"id": "compassionate", "name": "慈悲为怀", "description": "功德值达到50"},
     {"id": "journey_complete", "name": "取经圆满", "description": "完成所有章节"},
 ]
@@ -95,6 +94,9 @@ class JourneyEngine:
             progress = int((chapter_num / total) * 100)
 
             if chapter_num >= total:
+                self.repo.update_progress(session_id, 100, new_karma)
+                self.repo.update_achievements(session_id, achievements)
+                self.repo.advance_stage(session_id, stage="completed", chapter=chapter_num)
                 return self._build_completion(journey, new_karma, achievements)
 
             next_chapter = get_chapter(chapter_num + 1)

@@ -10,6 +10,7 @@ Combines:
 import json
 import logging
 import time
+import threading
 from typing import Iterator
 from openai import OpenAI
 from sqlalchemy.orm import Session
@@ -142,20 +143,22 @@ MAX_HISTORY_MESSAGES = 60  # 每个会话最多保留的历史消息数
 
 # 模块级对话历史存储: {session_id: [{role, content, ...}, ...]}
 _conversations: dict[str, list[dict]] = {}
+_conversations_lock = threading.Lock()
 
 
 def _get_history(session_id: str) -> list[dict]:
     """获取指定会话的对话历史。"""
-    return _conversations.get(session_id, [])
+    with _conversations_lock:
+        return list(_conversations.get(session_id, []))
 
 
 def _save_history(session_id: str, messages: list[dict]):
     """保存会话的对话历史（去掉 system prompt，限制最大消息数）。"""
-    _conversations[session_id] = messages[-MAX_HISTORY_MESSAGES:]
-    # 防止内存泄漏：超过 200 个会话时清理最旧的
-    if len(_conversations) > 200:
-        oldest = next(iter(_conversations))
-        del _conversations[oldest]
+    with _conversations_lock:
+        _conversations[session_id] = messages[-MAX_HISTORY_MESSAGES:]
+        if len(_conversations) > 200:
+            oldest = next(iter(_conversations))
+            del _conversations[oldest]
 
 
 class NovelsUnifiedService:
@@ -326,7 +329,10 @@ class NovelsUnifiedService:
             tool_results = []
             for tc in valid_tool_calls:
                 func_name = tc["function"]["name"]
-                func_args = json.loads(tc["function"]["arguments"]) if tc["function"]["arguments"] else {}
+                try:
+                    func_args = json.loads(tc["function"]["arguments"]) if tc["function"]["arguments"] else {}
+                except json.JSONDecodeError:
+                    func_args = {}
                 t_tool = time.time()
                 result = self._call_tool(func_name, func_args)
                 tool_results.append({"tool_call_id": tc["id"], "result": result})
@@ -394,6 +400,8 @@ class NovelsUnifiedService:
                 "latency_ms": int((time.time() - t0) * 1000),
                 "session_id": session_id,
             })
+            if final_content:
+                messages.append({"role": "assistant", "content": "".join(final_content)})
 
         # 保存本轮完整对话历史（去掉 system prompt），供下一轮继续使用
         _save_history(session_id, messages[1:])

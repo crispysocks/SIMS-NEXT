@@ -53,8 +53,8 @@ class RAGConfig:
             model_name=os.environ.get("RAG_EMBEDDING_MODEL", "all-MiniLM-L6-v2"),
             context_soft_limit=_env_int("RAG_CONTEXT_SOFT_LIMIT", default=8000),
             context_hard_limit=_env_int("RAG_CONTEXT_HARD_LIMIT", default=12000),
-            api_key=os.environ.get("OPENAI_API_KEY", ""),
-            base_url=os.environ.get("OPENAI_BASE_URL", ""),
+            api_key=os.environ.get("LLM_API_KEY", ""),
+            base_url=os.environ.get("LLM_BASE_URL", ""),
             model=os.environ.get("LLM_MODEL", ""),
         )
 

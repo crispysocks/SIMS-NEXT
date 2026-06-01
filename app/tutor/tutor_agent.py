@@ -94,8 +94,8 @@ class TutorAgent:
     ) -> None:
         self._mock = mock
         self._subject_name = subject_name
-        self._api_key = (api_key if api_key is not None else os.environ.get("OPENAI_API_KEY", "")).strip()
-        self._base_url = (base_url if base_url is not None else os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")).strip().rstrip("/")
+        self._api_key = (api_key if api_key is not None else os.environ.get("LLM_API_KEY", "")).strip()
+        self._base_url = (base_url if base_url is not None else os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1")).strip().rstrip("/")
         self._model = (model if model is not None else os.environ.get("LLM_MODEL", "gpt-4o-mini")).strip()
 
     def get_feedback(

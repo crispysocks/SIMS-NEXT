@@ -76,9 +76,9 @@ class LLMExplanationGenerator:
         temperature: float = 0.3,
         max_tokens: int = 1024,
     ) -> None:
-        self._api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
+        self._api_key = api_key or os.environ.get("LLM_API_KEY", "")
         self._base_url = (
-            base_url or os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+            base_url or os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1")
         ).strip().rstrip("/")
         self._model = model or os.environ.get("LLM_MODEL", "gpt-4o-mini")
         self._temperature = temperature

@@ -11,7 +11,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Load .env before reading OPENAI_API_KEY
+# Load .env before reading LLM_API_KEY
 _env_path = Path(__file__).parent.parent.parent / ".env"
 if _env_path.exists():
     load_dotenv(_env_path, override=True)
@@ -32,13 +32,15 @@ def _create_math_session() -> TutorSession:
     """Create a TutorSession wired for the math subject."""
     from app.tutor.subjects.math.engine import MathQuestionEngine
     from app.tutor.subjects.math.knowledge import PREREQUISITES
+    from app.tutor.subjects.math.tutor import MathTutoringPipeline
 
-    _api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    _api_key = os.environ.get("LLM_API_KEY", "").strip()
     agent = TutorAgent(subject_name="math", mock=not bool(_api_key))
     store = MasteryStore()
     engine = MathQuestionEngine(seed=SEED)
     rec = Recommender(store, prerequisites=PREREQUISITES)
-    return TutorSession(engine, store, rec, tutor_agent=agent)
+    tutoring_pipeline = MathTutoringPipeline()
+    return TutorSession(engine, store, rec, tutor_agent=agent, tutoring_pipeline=tutoring_pipeline)
 
 
 def _create_english_session() -> TutorSession:
@@ -46,7 +48,7 @@ def _create_english_session() -> TutorSession:
     from app.tutor.subjects.english.engine import EnglishQuestionEngine
     from app.tutor.subjects.english.knowledge import PREREQUISITES as ENG_PREREQS
 
-    _api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    _api_key = os.environ.get("LLM_API_KEY", "").strip()
     agent = TutorAgent(subject_name="english", mock=not bool(_api_key))
     store = MasteryStore()
     engine = EnglishQuestionEngine(seed=SEED)

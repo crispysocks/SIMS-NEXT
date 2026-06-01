@@ -228,6 +228,8 @@ reference
 
 # Project specific
 logs/
+ai-tutor/
 frontend/node_modules/
 
-.claude
+# Claude Code 本地配置
+.claude/

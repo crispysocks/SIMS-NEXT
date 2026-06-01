@@ -138,6 +138,24 @@ TOOLS = [
 ]
 
 MAX_TOOL_CALLS = 5
+MAX_HISTORY_MESSAGES = 60  # 每个会话最多保留的历史消息数
+
+# 模块级对话历史存储: {session_id: [{role, content, ...}, ...]}
+_conversations: dict[str, list[dict]] = {}
+
+
+def _get_history(session_id: str) -> list[dict]:
+    """获取指定会话的对话历史。"""
+    return _conversations.get(session_id, [])
+
+
+def _save_history(session_id: str, messages: list[dict]):
+    """保存会话的对话历史（去掉 system prompt，限制最大消息数）。"""
+    _conversations[session_id] = messages[-MAX_HISTORY_MESSAGES:]
+    # 防止内存泄漏：超过 200 个会话时清理最旧的
+    if len(_conversations) > 200:
+        oldest = next(iter(_conversations))
+        del _conversations[oldest]
 
 
 class NovelsUnifiedService:
@@ -215,10 +233,10 @@ class NovelsUnifiedService:
     def chat_stream(self, session_id: str, message: str, model: str = None) -> Iterator[str]:
         """Streaming chat with tool-calling loop. Yields SSE formatted events."""
         model = model or LLM_MODEL
-        messages = [
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": message},
-        ]
+        history = _get_history(session_id)
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        messages.extend(history)
+        messages.append({"role": "user", "content": message})
         tool_call_count = 0
 
         log_llm({
@@ -282,6 +300,8 @@ class NovelsUnifiedService:
             })
 
             if not valid_tool_calls:
+                if assistant_content:
+                    messages.append({"role": "assistant", "content": full_text})
                 break
 
             tool_call_count += 1
@@ -368,5 +388,8 @@ class NovelsUnifiedService:
                 "finish_reason": "stop",
                 "latency_ms": int((time.time() - t0) * 1000),
             })
+
+        # 保存本轮完整对话历史（去掉 system prompt），供下一轮继续使用
+        _save_history(session_id, messages[1:])
 
         yield f"data: {json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"

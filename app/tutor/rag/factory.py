@@ -65,6 +65,12 @@ class RAGConfig:
 def create_pipeline(subject: str, config: RAGConfig | None = None) -> TutoringPipeline | None:
     """Create a tutoring pipeline for the given subject.
 
+    Routing:
+        RAG_ENABLED=false  -> deterministic template pipeline (no deps needed)
+        RAG_ENABLED=true   -> full RAG pipeline (auto-builds vector DB on first run)
+                              falls back to TF-IDF if embedding deps missing,
+                              falls back to templates if everything fails.
+
     Args:
         subject: "english" or "math"
         config: RAG config. If None, reads from env via RAGConfig.from_env().
@@ -80,13 +86,18 @@ def create_pipeline(subject: str, config: RAGConfig | None = None) -> TutoringPi
         config = RAGConfig.from_env()
 
     if not config.enabled:
+        logger.info("RAG disabled (RAG_ENABLED=false), using deterministic template pipeline")
         return _build_deterministic(config.kb_path)
 
+    logger.info("RAG enabled, building pipeline (retriever_mode=%s)", config.retriever_mode)
     try:
-        return _build_rag(config)
-    except Exception:
+        pipeline = _build_rag(config)
+        logger.info("RAG pipeline ready")
+        return pipeline
+    except Exception as e:
         logger.warning(
-            "RAG pipeline initialization failed, using deterministic fallback"
+            "RAG pipeline initialization failed (%s), using deterministic fallback",
+            e,
         )
         return _build_deterministic(config.kb_path)
 

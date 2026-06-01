@@ -104,11 +104,18 @@ class EmbeddingRetriever(BaseRetriever):
         try:
             from sentence_transformers import SentenceTransformer
             self._model = SentenceTransformer(model_name)
-        except Exception:
+        except ImportError:
             logger.warning(
-                "Failed to load embedding model '%s'. "
+                "sentence-transformers not installed. "
+                "Run: pip install sentence-transformers  "
+                "EmbeddingRetriever disabled, falling back to TF-IDF."
+            )
+            return
+        except Exception as e:
+            logger.warning(
+                "Failed to load embedding model '%s': %s. "
                 "EmbeddingRetriever.is_ready() = False.",
-                model_name,
+                model_name, e,
             )
             return
 
@@ -120,22 +127,29 @@ class EmbeddingRetriever(BaseRetriever):
                 name=_COLLECTION_NAME,
                 metadata={"hnsw:space": "cosine"},
             )
-        except Exception:
+        except ImportError:
             logger.warning(
-                "Failed to connect to ChromaDB at '%s'. "
+                "chromadb not installed. "
+                "Run: pip install chromadb  "
+                "EmbeddingRetriever disabled, falling back to TF-IDF."
+            )
+            return
+        except Exception as e:
+            logger.warning(
+                "Failed to connect to ChromaDB at '%s': %s. "
                 "EmbeddingRetriever.is_ready() = False.",
-                persist_dir,
+                persist_dir, e,
             )
             return
 
-        # Index knowledge base
+        # Index knowledge base (auto-builds vector DB on first run)
         try:
             self._index_kb(kb_path)
-        except Exception:
+        except Exception as e:
             logger.warning(
-                "Failed to index knowledge base at '%s'. "
+                "Failed to index knowledge base at '%s': %s. "
                 "EmbeddingRetriever.is_ready() = False.",
-                kb_path,
+                kb_path, e,
             )
             return
 
@@ -288,9 +302,17 @@ class EmbeddingRetriever(BaseRetriever):
         # Delete removed files
         if to_delete:
             self._collection.delete(ids=to_delete)
+            logger.info("Removed %d deleted docs from vector DB", len(to_delete))
 
         # Embed and add new/changed files
         if to_add:
+            if not stored_ids:
+                logger.info(
+                    "First run: building vector DB from %d knowledge base files...",
+                    len(to_add),
+                )
+            else:
+                logger.info("Incremental update: embedding %d changed files", len(to_add))
             ids: list[str] = []
             embeddings: list[list[float]] = []
             metadatas: list[dict] = []

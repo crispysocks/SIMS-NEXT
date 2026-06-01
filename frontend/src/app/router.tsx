@@ -10,6 +10,10 @@ const StudentShell = lazy(() => import('@/portals/student/layout/student-shell')
 const TeacherShell = lazy(() => import('@/portals/teacher/layout/teacher-shell').then((m) => ({ default: m.TeacherShell })));
 const StudentDashboard = lazy(() => import('@/portals/student/pages/dashboard').then((m) => ({ default: m.StudentDashboard })));
 const TeacherDashboard = lazy(() => import('@/portals/teacher/pages/dashboard').then((m) => ({ default: m.TeacherDashboard })));
+const Students = lazy(() => import('@/portals/teacher/pages/students').then((m) => ({ default: m.Students })));
+const Classes = lazy(() => import('@/portals/teacher/pages/classes').then((m) => ({ default: m.Classes })));
+const Teachers = lazy(() => import('@/portals/teacher/pages/teachers').then((m) => ({ default: m.Teachers })));
+const Scores = lazy(() => import('@/portals/teacher/pages/scores').then((m) => ({ default: m.Scores })));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isAuthed = useAuthStore((s) => s.isAuthenticated);
@@ -37,6 +41,10 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/teacher/dashboard" replace /> },
       { path: 'dashboard', element: withSuspense(<TeacherDashboard />) },
+      { path: 'students', element: withSuspense(<Students />) },
+      { path: 'classes', element: withSuspense(<Classes />) },
+      { path: 'teachers', element: withSuspense(<Teachers />) },
+      { path: 'scores', element: withSuspense(<Scores />) },
     ],
   },
   { path: '/', element: <Navigate to="/login" replace /> },
